@@ -25,11 +25,11 @@ table.center {
 	margin-left: auto;
 	margin-right: auto;
 }
-table th, table td {
+th, td {
 	padding: 0.25em 0.75em;
 	text-align: center;
 }
-table th {
+th {
 	background-color: #E7E7E7;
 	font-weight: normal;
 	font-style: italic;
