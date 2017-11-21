@@ -81,6 +81,18 @@ if(file_exists('config.php')) {
 	}
 }
 
+// update any outdated table structure
+$queryResult = $mysqli->query('DESCRIBE '.$mySQLPrefix.'teams'); // default value of teams->sufficiencyTime was changed from '0000-00-00 00:00:00' to NULL
+if($queryResult && $queryResult->num_rows > 0) {
+	$resultArray = NULL;
+	do {
+		$resultArray = $queryResult->fetch_assoc();
+	} while($resultArray != NULL && $resultArray['Field'] != 'sufficiencyTime');
+	if($resultArray['Field'] == 'sufficiencyTime')
+		if($resultArray['Null'] != 'YES' || $resultArray['Default'] != '')
+			$mysqli->query('ALTER TABLE teams MODIFY COLUMN sufficiencyTime TIMESTAMP NULL');
+}
+
 // check for site configuration in database
 $configUp = FALSE;
 if($databaseUp) {
@@ -174,10 +186,10 @@ case 'login':
 		if(preg_match('/^TOKGOOD/', $validationResponse[1]) != FALSE) {
 			$matches = Array(); preg_match('/^BZID:\s(\d+)\s(.*)$/', $validationResponse[2], $matches);
 			if(is_numeric($matches[1])) {
-				$queryResult = $mysqli->query('SELECT bzid, COUNT(*) AS numUsers FROM '.$mySQLPrefix.'users');
+				$queryResult = $mysqli->query('SELECT bzid FROM '.$mySQLPrefix.'users');
 				if($queryResult && $queryResult->num_rows > 0) {
 					$resultArray = $queryResult->fetch_assoc();
-					if($configUp || $resultArray['numUsers'] == 0 || ($resultArray['numUsers'] == 1 && $resultArray['bzid'] == $matches[1])) {
+					if($configUp || $queryResult->num_rows == 0 || ($queryResult->num_rows == 1 && $resultArray['bzid'] == $matches[1])) {
 						$groups = preg_split('/\:/', substr($validationResponse[1], 9));
 						array_shift($groups);
 						$_SESSION['groups'] = $groups;
@@ -227,11 +239,11 @@ case 'abandonteam':
 			$resultArray = $queryResult->fetch_assoc();
 			$team = $resultArray['team'];
 			$mysqli->query('DELETE FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND team='.$team);
-			$queryResult = $mysqli->query('SELECT COUNT(*) AS total,'.$mySQLPrefix.'memberships.team,'.$mySQLPrefix.'events.minTeamSize FROM '.$mySQLPrefix.'memberships,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'memberships.team='.$team.' AND '.$mySQLPrefix.'memberships.rating IS NOT NULL AND '.$mySQLPrefix.'events.id='.$currentEvent);
+			$queryResult = $mysqli->query('SELECT COUNT(*) AS memberCount,(SELECT minTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.') AS minTeamSize FROM '.$mySQLPrefix.'memberships WHERE '.$mySQLPrefix.'memberships.team='.$team.' AND '.$mySQLPrefix.'memberships.rating IS NOT NULL');
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_assoc();
-				if($resultArray['total'] < $resultArray['minTeamSize'])
-					$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime="0000-00-00 00:00:00" WHERE id='.$resultArray['team']);
+				if($resultArray['memberCount'] < $resultArray['minTeamSize'])
+					$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime=NULL WHERE id='.$team);
 			}
 			$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'memberships WHERE team='.$team.' AND rating IS NOT NULL');
 			if(! $queryResult || $queryResult->num_rows == 0) {
@@ -283,12 +295,13 @@ case 'addmembers':
 			$queryResult = $mysqli->query('SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_assoc();
-				$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'memberships.team,COUNT(*) AS total,'.$mySQLPrefix.'events.maxTeamSize FROM '.$mySQLPrefix.'memberships,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'memberships.team='.$resultArray['team'].' AND '.$mySQLPrefix.'memberships.rating IS NOT NULL AND '.$mySQLPrefix.'events.id='.$currentEvent);
+				$team = $resultArray['team'];
+				$queryResult = $mysqli->query('SELECT COUNT(*) AS memberCount,(SELECT maxTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.') AS maxTeamSize FROM '.$mySQLPrefix.'memberships WHERE '.$mySQLPrefix.'memberships.team='.$team.' AND '.$mySQLPrefix.'memberships.rating IS NOT NULL');
+
 				if($queryResult && $queryResult->num_rows > 0) {
 					$resultArray = $queryResult->fetch_assoc();
-					if($resultArray['total'] < $resultArray['maxTeamSize']) {
+					if($resultArray['memberCount'] < $resultArray['maxTeamSize']) {
 						$bzids = Array(); foreach($_POST['bzids'] as $bzid) if(is_numeric($bzid)) array_push($bzids, $bzid);
-						$team = $resultArray['team'];
 						$queryResult = $mysqli->query('SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team in (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.') AND (bzid='.implode(' OR bzid=', $bzids).')');
 						if(! $queryResult || $queryResult->num_rows == 0) {
 							foreach($bzids as $bzid) {
@@ -326,12 +339,12 @@ case 'acceptinvitation':
 				}
 				$mysqli->query('UPDATE '.$mySQLPrefix.'memberships SET rating='.$myRating.' WHERE team='.$_POST['team'].' AND bzid='.$_SESSION['bzid']);
 				$mysqli->query('DELETE FROM '.$mySQLPrefix.'memberships WHERE team <> '.$_POST['team'].' AND bzid='.$_SESSION['bzid'].' AND team IN (SELECT id FROM teams WHERE event='.$currentEvent.')');
-				$queryResult = $mysqli->query('SELECT COUNT(*) AS total,'.$mySQLPrefix.'events.minTeamSize,'.$mySQLPrefix.'events.maxTeamSize FROM '.$mySQLPrefix.'memberships,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'memberships.team='.$_POST['team'].' AND '.$mySQLPrefix.'memberships.rating IS NOT NULL AND '.$mySQLPrefix.'events.id='.$currentEvent);
+				$queryResult = $mysqli->query('SELECT (SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE team='.$_POST['team'].' AND rating IS NOT NULL) AS existingMembers,minTeamSize,maxTeamSize FROM events WHERE events.id='.$currentEvent);
 				if($queryResult && $queryResult->num_rows > 0) {
 					$resultArray = $queryResult->fetch_assoc();
-					if($resultArray['total'] == $resultArray['minTeamSize'])
+					if($resultArray['existingMembers'] == $resultArray['minTeamSize'])
 						$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime="'.date("Y-m-d H:i:s", time()).'" WHERE id='.$_POST['team']);
-					if($resultArray['total'] == $resultArray['maxTeamSize'])
+					if($resultArray['existingMembers'] == $resultArray['maxTeamSize'])
 						$mysqli->query('DELETE FROM '.$mySQLPrefix.'memberships WHERE team='.$_POST['team'].' AND rating IS NULL');
 				}
 			}
@@ -474,7 +487,7 @@ case 'enterresult':
 		exit;
 
 	}
-	$queryResult = $mysqli->query('SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE sufficiencyTime != "0000-00-00 00:00:00" AND event='.$currentEvent);
+	$queryResult = $mysqli->query('SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE sufficiencyTime IS NOT NULL AND event='.$currentEvent);
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_row();
 		if($_POST['match'] >= $resultArray[0]) {
@@ -583,7 +596,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		$teamMembers = '';
 		$enough = FALSE;
 		$teamWaitlisted = TRUE;
-		$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'memberships.team,'.$mySQLPrefix.'users.callsign,'.$mySQLPrefix.'memberships.rating IS NOT NULL AS accepted,((SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.'))) >= (SELECT minTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.')) AS enough,(SELECT ((SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.' AND sufficiencyTime<>"0000-00-00 00:00:00" AND sufficiencyTime <= (SELECT sufficiencyTime FROM '.$mySQLPrefix.'teams WHERE id=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.' ORDER BY sufficiencyTime)))) > (SELECT maxTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.'))) AS waitlisted FROM '.$mySQLPrefix.'users,'.$mySQLPrefix.'memberships WHERE '.$mySQLPrefix.'users.bzid = '.$mySQLPrefix.'memberships.bzid AND '.$mySQLPrefix.'memberships.bzid IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.'))) AND '.$mySQLPrefix.'memberships.team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) ORDER BY accepted DESC, callsign');
+		$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'memberships.team,'.$mySQLPrefix.'users.callsign,'.$mySQLPrefix.'memberships.rating IS NOT NULL AS accepted,((SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.'))) >= (SELECT minTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.')) AS enough,(SELECT ((SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.' AND sufficiencyTime IS NOT NULL AND sufficiencyTime <= (SELECT sufficiencyTime FROM '.$mySQLPrefix.'teams WHERE id=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.' ORDER BY sufficiencyTime)))) > (SELECT maxTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.'))) AS waitlisted FROM '.$mySQLPrefix.'users,'.$mySQLPrefix.'memberships WHERE '.$mySQLPrefix.'users.bzid = '.$mySQLPrefix.'memberships.bzid AND '.$mySQLPrefix.'memberships.bzid IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.'))) AND '.$mySQLPrefix.'memberships.team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) ORDER BY accepted DESC, callsign');
 		if($queryResult && $queryResult->num_rows > 0) {
 			$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
 			if($resultArray[0]['enough'])
@@ -602,10 +615,10 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		echo "\t\t\t</table>\n";
 		if($teamMembers != '' && ! $eventClosed) {
 			echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptabandonteam\"><input type=\"submit\" value=\"Abandon Team\" class=\"submitButton\"></p></form>\n";
-			$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'memberships.team,COUNT(*) AS total,'.$mySQLPrefix.'events.maxTeamSize FROM '.$mySQLPrefix.'memberships,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'memberships.team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) AND '.$mySQLPrefix.'memberships.rating IS NOT NULL AND '.$mySQLPrefix.'events.id='.$currentEvent);
+			$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'memberships.team,'.$mySQLPrefix.'events.maxTeamSize FROM '.$mySQLPrefix.'memberships,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'memberships.team=(SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) AND '.$mySQLPrefix.'memberships.rating IS NOT NULL AND '.$mySQLPrefix.'events.id='.$currentEvent);
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_assoc();
-				if($resultArray['total'] < $resultArray['maxTeamSize']) {
+				if($queryResult->num_rows < $resultArray['maxTeamSize']) {
 					echo "\t\t\t<form action=\".?action=addmembers\" method=\"POST\">\n";
 					echo "\t\t\t\t<fieldset>\n";
 					echo "\t\t\t\t\t<legend>Invite New Member(s)</legend>\n";
@@ -912,7 +925,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 					foreach($resultArray as $result) {
 						if($result['enough']) {
 							$result['rank'] = $rank++;
-							$realTime = $result['sufficiencyTime'] == '0000-00-00 00:00:00' ? 0 : strtotime($result['sufficiencyTime']);
+							$realTime = $result['sufficiencyTime'] == '' ? 0 : strtotime($result['sufficiencyTime']);
 							if(! array_key_exists($realTime, $dateSorted))
 								$dateSorted[$realTime] = Array();
 							array_push($dateSorted[$realTime], $result);
@@ -1148,7 +1161,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 										echo "&nbsp;</td>\n";
 									$pregMatches = Array();
 									if(preg_match('/^(\d+)\s?(-)?$/', $gridSpace['content'], $pregMatches)) {
-										echo "\t\t\t\t\t<td class=\"".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? 'base ' : '').(count($pregMatches) > 2  && $columnIndex < count($columns) - 1 ? "strikethrough " : "")."leftAlign\">".preg_replace("/\s/", "&nbsp;", $teams[$pregMatches[1]])."</td>\n";
+										echo "\t\t\t\t\t<td class=\"".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? 'base ' : '').(count($pregMatches) > 2 && $columnIndex < count($columns) - 1 ? "strikethrough " : "")."leftAlign\">".preg_replace("/\s/", "&nbsp;", $teams[$pregMatches[1]])."</td>\n";
 										echo "\t\t\t\t\t<td".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? " class=\"base\"" : '').">".($columnIndex < count($columns) - 1 ? "<b>".$gridSpace['score']."</b>" : "&nbsp;")."</td>\n";
 									} else {
 										if($gridSpace['content'] == '') {
@@ -1222,7 +1235,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 						echo "\t\t\t\t<tr".($altRow ? " class=\"altRow\"" : "")."><td class=\"rightAlign\">".++$teamCount."</td><td>".$result['average']."</td><td class=\"leftAlign\">".$result['members']."</td></tr>\n";
 						$altRow = ! $altRow;
 					} else if($result['enough'] || $isAdmin) {
-						$realTime = $result['sufficiencyTime'] == '0000-00-00 00:00:00' ? 0 : strtotime($result['sufficiencyTime']);
+						$realTime = $result['sufficiencyTime'] == '' ? 0 : strtotime($result['sufficiencyTime']);
 						if(! array_key_exists($realTime, $grayList))
 							$grayList[$realTime] = Array();
 						array_push($grayList[$realTime], $result);
