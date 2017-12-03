@@ -1294,16 +1294,16 @@ echo "</html>\n";
 
 // check apache errors, search for dummy_, search for 9972, delete extraneous comments
 // check tabbed format in HTML output
-// check for prefix with every FROM/INTO query
-// validate
+// check for prefix with every FROM/INTO query (including table.column specifications)
+// validate HTML
 	// missing or bad database
 	// config prompt
 	// home/no events
 	// home/event started
 	// home/event closed/all results in/as admin
 	// info
-	// profile no event
-	// profile event open on team with opening
+	// registration no event
+	// registration event open on team with opening
 	// abandon team
 	// admin/event open/1 player banned
 	// create event
@@ -1311,14 +1311,18 @@ echo "</html>\n";
 	// delete event
 	// enter result
 
-//////////////////////////////////// TODO /////////////////////////////////////
+////////////////////////// Future Improvement Ideas ///////////////////////////
 
-// enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // make single player teams work
-// change config setup so first user logging in after group specification must be in group, or delete and start over
 // action logging and viewing
 // use mod_rewrite for/pretty/action/URLs
+
+//////////////////////////////////// TODO /////////////////////////////////////
+
+// improve graphical theme, including making just one table for the bracket
+// make the site pull ratings from LU instead of the 1vs1 league
+// enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
-// improve graphical theme
+// review wording/verbiage on front page, info page, etc.
 
 ?>
