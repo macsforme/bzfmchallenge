@@ -7,11 +7,11 @@
 /////////////////////////////////// Author ////////////////////////////////////
 
 // By Joshua Bodine
-// https://github.com/macsforme/hixdoubles
+// https://github.com/macsforme/bzfmchallenge
 
 /////////////////////////////////// License ///////////////////////////////////
 
-// Copyright (c) 2013-2014, Joshua Bodine
+// Copyright (c) 2013-2017, Joshua Bodine
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -126,8 +126,8 @@ session_start();
 
 // hardcoded user spoofing
 //$_SESSION['bzid'] = 9972;
-//$_SESSION['callsign'] = 'Constitution';
-//$_SESSION['groups'] = Array('GU-LEAGUE.ADMINS');
+//$_SESSION['callsign'] = 'macsforme';
+//$_SESSION['groups'] = Array('FAIRSERVE.TECH');
 //unset($_SESSION['groups']);
 
 // check for admin status (actions manipulating this will refresh the page)
@@ -217,10 +217,7 @@ case 'login':
 			}
 		}
 	}
-	if($currentEvent)
-		header('Location: '.$baseURL.'?action=profile');
-	else
-		header('Location: '.$baseURL);
+	header('Location: '.$baseURL);
 	exit;
 
 case 'logout':
@@ -515,8 +512,8 @@ case 'deleteresult':
 
 ////////////////////////////// Post-Action Logic //////////////////////////////
 
-// (unauthenticated and unconfigured) or (unauthenticated and profile request) redirect
-if($databaseUp && ! isset($_SESSION['bzid']) && (! $configUp || (isset($_GET['action']) && $_GET['action'] == 'profile'))) {
+// unauthenticated and unconfigured redirect
+if($databaseUp && ! isset($_SESSION['bzid']) && (! $configUp)) {
 	header('Location: '.$loginURL);
 	exit;
 }
@@ -534,8 +531,8 @@ if($configUp && isset($_SESSION['bzid'])) {
 	}
 }
 
-// update logged-in user's current event if on a page which displays profile
-if(isset($_SESSION['bzid']) && $currentEvent && isset($_GET['action']) && ($_GET['action'] == 'profile' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers'))
+// touch the last event record for the current logged-in user
+if(isset($_SESSION['bzid']) && $currentEvent)
 	$mysqli->query('UPDATE '.$mySQLPrefix.'users SET lastEvent='.$currentEvent.' WHERE bzid='.$_SESSION['bzid']);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -549,33 +546,34 @@ echo "<html>\n";
 echo "\t<head>\n";
 echo "\t\t<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">\n";
 echo "\t\t<link rel=\"stylesheet\" type=\"text/css\" href=\"styles.css\">\n";
-echo "\t\t<title>HiX Doubles Challenge</title>\n";
+echo "\t\t<title>BZ FM Challenge</title>\n";
 echo "\t</head>\n";
 echo "\t<body>\n";
-$title = "HiX Doubles Challenge";
-if($currentEvent) {
-	$queryResult = $mysqli->query('SELECT description FROM '.$mySQLPrefix.'events WHERE startTime=(SELECT MAX(startTime) FROM '.$mySQLPrefix.'events)');
-	if($queryResult && $queryResult->num_rows > 0) {
-		$resultArray = $queryResult->fetch_row();
-		$title = $resultArray[0];
-	}
-}
-echo "\t\t<div class=\"headerBox\">".$title."</div>\n";
+echo "\t\t<div class=\"headerBox\">\n";
+echo "\t\t\t<img src=\"bzicon.png\">\n";
+echo "\t\t\tBZFLAG FUNMATCH CHALLENGE\n";
+echo "\t\t</div>\n";
 echo "\t\t<ul class=\"headerButtons\">\n";
-echo "\t\t\t<li><a href=\".\">Home</a></li>\n";
-echo "\t\t\t<li><a href=\"?action=info\">Information</a></li>\n";
-echo "\t\t\t<li><a href=\"?action=profile\">Profile</a></li>\n";
+echo "\t\t\t<li><a ".((! isset($_GET['action']) && ! isset($_GET['event']) || $_GET['action'] == 'promptenterresult' || $_GET['action'] == 'enterresult' || $_GET['action'] == 'deleteresult') ? "class=\"current\" " : "")."href=\".\">HOME</a></li>";
+echo "<li><a ".($_GET['action'] == 'info' ? "class=\"current\" " : "")."href=\"?action=info\">INFORMATION</a></li>";
+if($_SESSION['bzid'])
+	echo "<li><a ".($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers' ? "class=\"current\" " : "")."href=\"?action=registration\">REGISTRATION</a></li>";
 if($currentEvent) {
 	$queryResult = $mysqli->query('SELECT COUNT(id) FROM '.$mySQLPrefix.'events WHERE isClosed=TRUE AND id<>'.$currentEvent);
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_row();
 		if($resultArray[0] > 0)
-			echo "\t\t\t<li><a href=\"?action=history\">Archive</a></li>\n";
+			echo "<li><a ".($_GET['action'] == 'history' || isset($_GET['event']) ? "class=\"current\" " : "")."href=\"?action=history\">PAST EVENTS</a></li>";
 	}
 }
-if($isAdmin) echo "\t\t\t<li><a href=\"?action=admin\">Admin</a></li>\n";
-echo "\t\t\t<li><a href=\"http://forums.bzflag.org/ucp.php?i=pm&amp;mode=compose&amp;u=9972\">Contact</a></li>\n";
-echo "\t\t</ul>\n";
+if($isAdmin) echo "<li><a ".($_GET['action'] == 'admin' || $_GET['action'] == 'promptcreateevent' || $_GET['action'] == 'prompteditevent' || $_GET['action'] == 'promptdeleteevent' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups' ? "class=\"current\" " : "")."href=\"?action=admin\">ADMIN</a></li>";
+echo "<li><a href=\"http://forums.bzflag.org/ucp.php?i=pm&amp;mode=compose&amp;u=9972\">CONTACT</a></li>";
+if($_SESSION['bzid'])
+	echo "<li><a href=\"?action=logout\">LOG OUT</a></li>";
+else
+	echo "<li><a href=\"".$loginURL."\">LOG IN</a></li>";
+
+echo "\n\t\t</ul>\n";
 echo "\t\t<div class=\"mainContent\">\n";
 
 //////////////////////////////// Main Content /////////////////////////////////
@@ -585,10 +583,9 @@ if($error)
 	echo "\t\t\t<p class=\"error\"><b>ERROR:</b> ".$error."</p>\n";
 
 // main action logic
-if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['action'] == 'profile' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers')) {
+if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers')) {
 	if(! $currentEvent) {
-		echo "\t\t\t<h1>Profile</h1>\n";
-		echo "\t\t\t<h2>User Information</h2>\n";
+		echo "\t\t\t<h1>User Information</h1>\n";
 		echo "\t\t\t<table>\n";
 		echo "\t\t\t\t<tr><td class=\"rightalign\"><b>Callsign:</b></td><td class=\"leftalign\">".$_SESSION['callsign']."</td></tr>\n";
 		echo "\t\t\t</table>\n";
@@ -606,8 +603,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 			foreach($resultArray as $result)
 				$teamMembers .= ($teamMembers != '' ? ', ' : '').($result['accepted'] ? '' : '<span class="gray">').$result['callsign'].($result['accepted'] ? '' : '</span>');
 		}
-		echo "\t\t\t<h1>Profile</h1>\n";
-		echo "\t\t\t<h2>User & Team Information</h2>\n";
+		echo "\t\t\t<h1>User & Team Information</h1>\n";
 		echo "\t\t\t<table>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Callsign:</b></td><td class=\"leftAlign\">".$_SESSION['callsign']."</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Team Status:</b></td><td class=\"leftAlign\">".($teamMembers == '' ? 'Teamless' : (! $enough ? 'Insufficient Members' : ($teamWaitlisted ? 'On Waiting List' : 'Qualified')))."</td></tr>\n";
@@ -691,13 +687,10 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 			echo "\t\t\t</p>\n";
 		}
 	}
-	echo "\t\t\t<br>\n";
-	echo "\t\t\t<form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"logout\"><input type=\"submit\" value=\"Log Out\" class=\"submitButton\"></p></form>\n";
 } else if($configUp && isset($_GET['action']) && $_GET['action'] == 'info') {
-	echo "\t\t\t<h1>Information</h1>\n";
-	echo "\t\t\t<h2>Event Summary</h2>\n";
-	echo "\t\t\t<p>This event is a funmatch tournament for BZFlag league players. The competition format is a single-elimination table, which will take place on a single day over several hours, depending on the turnout. To participate, you will need to group up with some other players (depending on the team sizes for the event) and register on this site as a team. Each of you must log in to this site to generate a player record. One of your team members must then create the team using the <a href=\".?action=profile\">Profile</a> page. The other team member(s) must then navigate to the same page and accept the team invitation, after which the complete team will be listed on the home page. Teams will be seeded (ranked) relative to other teams by the average <a href=\"http://1vs1.bzflag.net\">1vs1 League</a> ZELO rating of their members (players who do not participate in the 1vs1 League will be credited with the base rating). After the close of registration time, all team manipulations are frozen, and all ratings are updated one last time to create the final seeding. A single-elimination bracket is then created, and teams are assigned to spots based on their seeding. Depending on how many teams register, some teams may have a bye into the second round. Teams will then compete against each assigned opponent until only one team remains, which will be declared the winner.</p>\n";
-	echo "\t\t\t<h2>Rules</h2>\n";
+	echo "\t\t\t<h1>Event Summary</h1>\n";
+	echo "\t\t\t<p>This event is a funmatch tournament for BZFlag league players. The competition format is a single-elimination table, which will take place on a single day over several hours, depending on the turnout. To participate, you will need to group up with some other players (depending on the team sizes for the event) and register on this site as a team. Each of you must log in to this site to generate a player record. One of your team members must then create the team using the <a href=\".?action=registration\">Registration</a> page. The other team member(s) must then navigate to the same page and accept the team invitation, after which the complete team will be listed on the home page. Teams will be seeded (ranked) relative to other teams by the average <a href=\"http://1vs1.bzflag.net\">1vs1 League</a> ZELO rating of their members (players who do not participate in the 1vs1 League will be credited with the base rating). After the close of registration time, all team manipulations are frozen, and all ratings are updated one last time to create the final seeding. A single-elimination bracket is then created, and teams are assigned to spots based on their seeding. Depending on how many teams register, some teams may have a bye into the second round. Teams will then compete against each assigned opponent until only one team remains, which will be declared the winner.</p>\n";
+	echo "\t\t\t<h1>Rules</h1>\n";
 	echo "\t\t\t<ul>\n";
 	echo "\t\t\t\t<li>All standard league rules are in effect.</li>\n";
 	echo "\t\t\t\t<li>There will be no ties in the initial team seeding. If two or more teams are rated equally, they will be seeded in order of registration time.</li>\n";
@@ -710,7 +703,6 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t<li>Any issues that arise which are not covered here will be adjudicated by any league administrator(s) present.</li>\n";
 	echo "\t\t\t</ul>\n";
 } else if($currentEvent && isset($_GET['action']) && $_GET['action'] == 'history') {
-	echo "\t\t\t<h1>Archive</h1>\n";
 	echo "\t\t\t<p>\n";
 	$queryResult = $mysqli->query('SELECT id,description FROM '.$mySQLPrefix.'events WHERE isClosed=TRUE AND id<>'.$currentEvent.' ORDER BY id DESC');
 	if($queryResult && $queryResult->num_rows > 0) {
@@ -724,16 +716,15 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t<p>Please confirm whether you wish to abandon your current team:</p>\n";
 	echo "\t\t\t<table>\n";
 	echo "\t\t\t\t<tr>\n";
-	echo "\t\t\t\t\t<td><form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"profile\"><input type=\"submit\" value=\"Cancel\" class=\"submitButton\"></p></form></td>\n";
+	echo "\t\t\t\t\t<td><form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"registration\"><input type=\"submit\" value=\"Cancel\" class=\"submitButton\"></p></form></td>\n";
 	echo "\t\t\t\t\t<td><form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"abandonteam\"><input type=\"submit\" value=\"Confirm\" class=\"submitButton\"></p></form></td>\n";
 	echo "\t\t\t\t</tr>\n";
 	echo "\t\t\t</table>\n";
 } else if($isAdmin && $configUp && isset($_GET['action']) && ($_GET['action'] == 'admin' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups')) {
-	echo "\t\t\t<h1>Admin</h1>\n";
 	$queryResult = $mysqli->query('SELECT *,(SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.') AS numTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.';');
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_assoc();
-		echo "\t\t\t<h2>Current Event Information</h2>\n";
+		echo "\t\t\t<h1>Current Event Information</h1>\n";
 		echo "\t\t\t<table>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Description:</b></td><td class=\"leftAlign\">".$resultArray['description']."</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Teams:</b></td><td class=\"leftAlign\">".$resultArray['maxTeams']."</td></tr>\n";
@@ -743,7 +734,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Registration Buffer:</b></td><td class=\"leftAlign\">".$resultArray['registrationBuffer']." minutes</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Member Groups:</b></td><td class=\"leftAlign\">".$resultArray['memberGroups']."</td></tr>\n";
 		echo "\t\t\t</table>\n";
-		echo "\t\t\t<h2>Event Manipulations</h2>\n";
+		echo "\t\t\t<h1>Event Manipulations</h1>\n";
 		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"prompteditevent\"><input type=\"submit\" value=\"Edit Event Information\" class=\"submitButton\"></p></form>\n";
 		$queryResult = $mysqli->query('SELECT COUNT(*) FROM '.$mySQLPrefix.'results WHERE event='.$currentEvent);
 		if($queryResult && $queryResult->num_rows > 0) {
@@ -759,10 +750,10 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptdeleteevent\"><input type=\"submit\" value=\"Delete Event\" class=\"submitButton\"></p></form>\n";
 		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptcreateevent\"><input type=\"submit\" value=\"Create New Event\" class=\"submitButton\"></p></form>\n";
 	} else {
-		echo "\t\t\t<h2>Event Manipulations</h2>\n";
+		echo "\t\t\t<h1>Event Manipulations</h1>\n";
 		echo "\t\t\t<form action=\".\" method=\"GET\"><input type=\"hidden\" name=\"action\" value=\"promptcreateevent\"><input type=\"submit\" value=\"Create New Event\" class=\"submitButton\"></p></form>\n";
 	}
-	echo "\t\t\t<h2>Other Administrative Tasks</h2>\n";
+	echo "\t\t\t<h1>Other Administrative Tasks</h1>\n";
 	$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'users WHERE banned=FALSE ORDER BY callsign');
 	if($queryResult && $queryResult->num_rows > 0) {
 		echo "\t\t\t<form action=\".?action=spoof\" method=\"POST\">\n";
@@ -846,7 +837,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t<form action=\".?action=editevent\" method=\"POST\">\n";
 	echo "\t\t\t\t<p class=\"tight\"><input type=\"hidden\" name=\"existing\" value=\"".($_GET['action'] == "promptcreateevent" ? "0" : "1")."\"></p>\n";
 	echo "\t\t\t\t<table>\n";
-	$resultArray = Array('description' => '', 'maxTeams' => 16, 'minTeamSize' => 2, 'maxTeamSize' => 3, 'startTime' => date("Y-m-d H:i:s"), 'registrationBuffer' => 2880, 'memberGroups' => 'GU.LEAGUE');
+	$resultArray = Array('description' => '', 'maxTeams' => 16, 'minTeamSize' => 2, 'maxTeamSize' => 3, 'startTime' => date("Y-m-d H:i:s"), 'registrationBuffer' => 2880, 'memberGroups' => 'LU.PLAYER');
 	if($_GET['action'] == "prompteditevent") {
 		$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
 		if($queryResult && $queryResult->num_rows > 0) {
@@ -896,24 +887,25 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"submit\" value=\"Cancel\" class=\"submitButton\"></p></form>\n";
 } else if($configUp) {
 	if(! isset($_GET['event']))
-		echo "\t\t\t<p>Welcome to the funmatch challenge, a single-elimination multi-player funmatch tournament for BZFlag league players. This event consists of a series of twenty-minute matches (with a thirty-minute final match) which will take place on a single day over several hours (depending on the turnout). Teams may consist of any combination of league members. For further information, please refer to the <a href=\"?action=info\">Information</a> page. To register for the tournament, or to modify or cancel an existing registration, please visit your <a href=\"?action=profile\">Profile</a> page.</p>\n";
+		echo "\t\t\t<p>The BZFlag FM Challenge is a single-elimination multi-player funmatch tournament for BZFlag league players. This event consists of a series of twenty-minute matches (with a thirty-minute final match) which will take place on a single day over several hours (depending on the turnout). Teams may consist of any combination of league members. For further information, please refer to the <a href=\"?action=info\">Information</a> page. To register for the tournament, or to modify or cancel an existing registration, please visit your <a href=\"?action=registration\">Registration</a> page.</p>\n";
 	if($currentEvent) {
 		if(isset($_GET['event']) && is_numeric($_GET['event']) && $currentEvent != $_GET['event']) {
 			$queryResult = $mysqli->query('SELECT description FROM '.$mySQLPrefix.'events WHERE id='.$_GET['event'].' AND isClosed=TRUE');
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_row();
-				echo "\t\t\t<p>You are now viewing previous event results for the ".$resultArray[0].".</p>\n";
 				$currentEvent = $_GET['event'];
 				$eventClosed = TRUE;
 			}
 		}
-		$queryResult = $mysqli->query('SELECT startTime,registrationBuffer,minTeamSize,maxTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
+		$queryResult = $mysqli->query('SELECT description,startTime,registrationBuffer,minTeamSize,maxTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
 		if($queryResult && $queryResult->num_rows > 0) {
 			$resultArray = $queryResult->fetch_assoc();
+			echo "\t\t\t<h1>Event Details</h1>\n";
 			echo "\t\t\t<p>\n";
+			echo "\t\t\t\t<b>Event Name:</b> ".$resultArray['description']."<br>\n";
 			if(! isset($_GET['event'])) echo "\t\t\t\t<b>Registration Close: </b>".date("l, F j, Y, G:i", strtotime($resultArray['startTime']) - $resultArray['registrationBuffer'] * 60)." GMT<br>\n";
 			echo "\t\t\t\t<b>Scheduled Start: </b>".date("l, F j, Y, G:i", strtotime($resultArray['startTime']))." GMT<br>\n";
-			echo "\t\t\t\t<b>Home Server:</b> <i>(see server list)</i><br>\n";
+			if(! isset($_GET['event'])) echo "\t\t\t\t<b>Home Server:</b> <i>(see server list)</i><br>\n";
 			echo "\t\t\t\t<b>Team Size:</b> ".$resultArray['minTeamSize']." - ".$resultArray['maxTeamSize']."\n";
 			echo "\t\t\t</p>\n";
 			if($eventClosed) {
@@ -1206,7 +1198,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 
 			echo "\t\t\t<h1>Contestants and Preliminary Seeding</h1>\n";
 			if(! isset($_GET['event']))
-				echo "\t\t\t<p>This table shows the initial seeding (ranking) of all teams registered for this event so far. This seeding will be used to assign teams to slots in the elimination table. Team ratings are calculated by taking the average rating of all team members in the <a href=\"http://1vs1.bzflag.net\">1vs1 League</a>, and are subject to change until registration is closed. Any teams listed in gray text without a seeding are on the waiting list (listed in order of priority) due to the number of teams exceeding the event capacity. To register your team, or to modify or cancel your team entry, visit your <a href=\".?action=profile\">Profile</a> page.</p>\n";
+				echo "\t\t\t<p>This table shows the initial seeding (ranking) of all teams registered for this event so far. This seeding will be used to assign teams to slots in the elimination table. Team ratings are calculated by taking the average rating of all team members in the <a href=\"http://1vs1.bzflag.net\">1vs1 League</a>, and are subject to change until registration is closed. Any teams listed in gray text without a seeding are on the waiting list (listed in order of priority) due to the number of teams exceeding the event capacity. To register your team, or to modify or cancel your team entry, visit your <a href=\".?action=registration\">Registration</a> page.</p>\n";
 			echo "\t\t\t<table>\n";
 			echo "\t\t\t\t<tr><th>Seed</th><th>Average Rating</th><th>Team Members & Individual Ratings</th></tr>\n";
 			$queryResult = $mysqli->query('SELECT team AS teamID,(SELECT sufficiencyTime FROM '.$mySQLPrefix.'teams WHERE id=teamID) as sufficiencyTime,FLOOR(SUM(rating) / COUNT(rating)) AS average, GROUP_CONCAT(CONCAT_WS(" ",(SELECT callsign FROM '.$mySQLPrefix.'users WHERE bzid='.$mySQLPrefix.'memberships.bzid),CONCAT("(",rating,")")) ORDER BY rating IS NULL SEPARATOR ", ") AS members,((SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team=teamID) >= (SELECT minTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.')) AS enough,(SELECT maxTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.') AS maxTeams FROM '.$mySQLPrefix.'memberships WHERE team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.') '.($isAdmin ? '' : 'AND rating IS NOT NULL ').'GROUP BY team ORDER BY average DESC,sufficiencyTime');
@@ -1287,6 +1279,9 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 
 /////////////////////////////// Content Footer ////////////////////////////////
 
+echo "\t\t</div>\n";
+echo "\t\t<div class=\"footerBox\">\n";
+echo "\t\t\t<a href=\"https://github.com/macsforme/bzfmchallenge\">https://github.com/macsforme/bzfmchallenge</a>\n";
 echo "\t\t</div>\n";
 echo "\t</body>\n";
 echo "</html>\n";
