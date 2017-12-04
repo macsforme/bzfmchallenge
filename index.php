@@ -1116,15 +1116,14 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 							echo "\t\t\t</table>";
 						}
 					} else {
-						$numBrackets = max(1, floor(($numRounds + 1) / 2));
+						$numBrackets = 1; // we're back to only displaying one bracket, instead of breaking it up into multiple narrower brackets
 						$brackets = Array();
 						for($bracket = 1; $bracket <= $numBrackets; ++$bracket)
 							$brackets[$bracket] = Array();
 						for($column = 1; $column <= $numRounds + 1; ++$column) {
-							$thisBracket = max(1, floor($column / 2));
-							if($column > 1 && count($brackets[$thisBracket]) == 0)
-								array_push($brackets[$thisBracket], $column - 1);
-							array_push($brackets[$thisBracket], $column);
+							if($column > 1 && count($brackets[1]) == 0)
+								array_push($brackets[1], $column - 1);
+							array_push($brackets[1], $column);
 						}
 						foreach($brackets as $bracket => $columns) {
 							echo "\t\t\t<table class=\"bracket\">\n";
@@ -1319,10 +1318,10 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// improve graphical theme, including making just one table for the bracket
 // make the site pull ratings from LU instead of the 1vs1 league
 // enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // review wording/verbiage on front page, info page, etc.
+// work out spacing between main content, <p>, tables, fieldset, <h1>, etc.
 
 ?>
