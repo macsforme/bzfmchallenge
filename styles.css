@@ -111,7 +111,8 @@ ul.headerButtons li {
 }
 ul.headerButtons a {
 	display: inline-block;
-	padding: 1em 1.45em;
+	margin: 0;
+	padding: 16px 23px;
 	background-color: #2A3957;
 	font-size: 12pt;
 	font-weight: bold;
@@ -120,10 +121,14 @@ ul.headerButtons a {
 	color: #FFFFFF;
 }
 ul.headerButtons a.current {
+	margin: -2px 0;
+	padding: 18px 23px;
 	background-color: #FFFFFF;
 	color: #2A3957;
 }
 ul.headerButtons a:hover {
+	margin: 0;
+	padding: 16px 23px;
 	background-color: #0055A2;
 	color: #FFFFFF;
 }
@@ -137,7 +142,7 @@ ul.headerButtons a:hover {
 	position: fixed;
 	bottom: 0;
 	width: 100%;
-	margin: 0;
+	margin: 0 0 -2px 0;
 	padding: 0.75em 0.75em;
 	text-align: center;
 	font-size: 8pt;
