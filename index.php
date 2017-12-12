@@ -1312,9 +1312,10 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
+// validate team info edits (event name required, description -> event name, can't change maximum teams if results exist)
 // enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
-// appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // review wording/verbiage on front page, info page, etc.
+// appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // work out spacing between main content, <p>, tables, fieldset, <h1>, etc.
 
 ?>
