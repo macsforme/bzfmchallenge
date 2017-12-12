@@ -102,6 +102,13 @@ if($queryResult && $queryResult->num_rows > 0) {
 		if($resultArray['Null'] != 'YES' || $resultArray['Default'] != '')
 			$mysqli->query('ALTER TABLE teams MODIFY COLUMN sufficiencyTime TIMESTAMP NULL');
 }
+$queryResult = $mysqli->query('SELECT id FROM '.$mySQLPrefix.'teams WHERE sufficiencyTime="0000-00-00 00:00:00"'); // there may have been rows with the old default '0000-00-00 00:00:00' value for sufficiencyTime
+if($queryResult && $queryResult->num_rows > 0) {
+	$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
+	foreach($resultArray as $row)
+		$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime=NULL WHERE id='.$row['id']);
+}
+
 
 // check for site configuration in database
 $configUp = FALSE;
