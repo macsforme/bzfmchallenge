@@ -54,6 +54,16 @@ function getDependentMatchNumber($match) {
 		return(pow(2, $round - 1) - 1 - (pow(2, $round) - 1 - $match));
 }
 
+function getRatings($bzids) {
+	$ratings = Array();
+	$matches = array();
+	preg_match_all('/\{\"id\"\:\d+\,\"bzid\"\:\"(\d+)\"\,\"alias\"\:\".*?\"\,\"username\"\:\".*?\"\,\"team\"\:.*?\,\"url\"\:\".*?\"\,\"elo\"\:(\d+)\}/', file_get_contents('http://leaguesunited.org/api/players?bzids='.implode(',', $bzids)), $matches, PREG_SET_ORDER);
+	foreach($matches as $player)
+		if(is_numeric($player[1]) && is_numeric($player[2]) && in_array($player[1], $bzids))
+			$ratings[$player[1]] = $player[2];
+	return $ratings;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// INITIALIZATION ////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -261,17 +271,10 @@ case 'createteam':
 				$queryResult = $mysqli->query('SELECT maxTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
 				if($queryResult && $queryResult->num_rows > 0) {
 					$resultArray = $queryResult->fetch_assoc();
-					$myRating = 1000;
-					$ranksResponse = trim(file_get_contents('http://1vs1.bzflag.net/Constitution_players.php?bzids='.$_SESSION['bzid']));
-					$ranksResponse = str_replace("\r\n", "\n", $ranksResponse);
-					$ranksResponse = str_replace("\r", "\n", $ranksResponse);
-					$ranksResponse = explode("\n", $ranksResponse);
-					if(count($ranksResponse) >= 2) {
-						$matches = Array();
-						preg_match('/^\"(\d+)\",(\d+),/', $ranksResponse[1], $matches);
-						if(count($matches) == 3 && $matches[1] == $_SESSION['bzid'])
-							$myRating = $matches[2];
-					}
+					$myRating = 0;
+					$ranksArray = getRatings(Array($_SESSION['bzid']));
+					if(array_key_exists($_SESSION['bzid'], $ranksArray))
+						$myRating = $ranksArray[$_SESSION['bzid']];
 					$mysqli->query('INSERT INTO '.$mySQLPrefix.'teams SET event='.$currentEvent);
 					foreach($bzids as $bzid) {
 						$mysqli->query('INSERT INTO '.$mySQLPrefix.'memberships SET team=(SELECT MAX(id) FROM '.$mySQLPrefix.'teams),bzid='.$bzid.($bzid == $_SESSION['bzid'] ? ',rating='.$myRating : ''));
@@ -323,17 +326,10 @@ case 'acceptinvitation':
 		if(isset($_POST['team']) && is_numeric($_POST['team'])) {
 			$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND team='.$_POST['team'].' AND rating IS NULL AND team IN (SELECT id FROM teams WHERE event='.$currentEvent.')');
 			if($queryResult && $queryResult->num_rows > 0) {
-				$myRating = 1000;
-				$ranksResponse = trim(file_get_contents('http://1vs1.bzflag.net/Constitution_players.php?bzids='.$_SESSION['bzid']));
-				$ranksResponse = str_replace("\r\n", "\n", $ranksResponse);
-				$ranksResponse = str_replace("\r", "\n", $ranksResponse);
-				$ranksResponse = explode("\n", $ranksResponse);
-				if(count($ranksResponse) >= 2) {
-					$matches = Array();
-					preg_match('/^\"(\d+)\",(\d+),/', $ranksResponse[1], $matches);
-					if(count($matches) == 3 && $matches[1] == $_SESSION['bzid'])
-						$myRating = $matches[2];
-				}
+				$myRating = 0;
+				$ranksArray = getRatings(Array($_SESSION['bzid']));
+				if(array_key_exists($_SESSION['bzid'], $ranksArray))
+					$myRating = $ranksArray[$_SESSION['bzid']];
 				$mysqli->query('UPDATE '.$mySQLPrefix.'memberships SET rating='.$myRating.' WHERE team='.$_POST['team'].' AND bzid='.$_SESSION['bzid']);
 				$mysqli->query('DELETE FROM '.$mySQLPrefix.'memberships WHERE team <> '.$_POST['team'].' AND bzid='.$_SESSION['bzid'].' AND team IN (SELECT id FROM teams WHERE event='.$currentEvent.')');
 				$queryResult = $mysqli->query('SELECT (SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE team='.$_POST['team'].' AND rating IS NOT NULL) AS existingMembers,minTeamSize,maxTeamSize FROM events WHERE events.id='.$currentEvent);
@@ -391,18 +387,9 @@ case 'updateseeding':
 		if($queryResult && $queryResult->num_rows > 0) {
 			$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
 			$bzids = Array(); foreach($resultArray as $result) array_push($bzids, $result['bzid']);
-			$ranksResponse = trim(file_get_contents('http://1vs1.bzflag.net/Constitution_players.php?bzids='.implode('%0A', $bzids)));
-			$ranksResponse = str_replace("\r\n", "\n", $ranksResponse);
-			$ranksResponse = str_replace("\r", "\n", $ranksResponse);
-			$ranksResponse = explode("\n", $ranksResponse);
-			foreach($ranksResponse as $line) {
-				if(substr($line, 0, 1) != '#') {
-					$matches = Array();
-					preg_match('/^\"(\d+)\",(\d+),/', $line, $matches);
-					if(count($matches) == 3)
-						$mysqli->query('UPDATE '.$mySQLPrefix.'memberships SET rating='.$matches[2].' WHERE bzid='.$matches[1].' AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
-				}
-			}
+			$ranksArray = getRatings($bzids);
+			foreach($ranksArray as $bzid => $rating)
+				$mysqli->query('UPDATE '.$mySQLPrefix.'memberships SET rating='.$rating.' WHERE bzid='.$bzid.' AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
 		}
 	}
 	break;
@@ -1318,7 +1305,6 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// make the site pull ratings from LU instead of the 1vs1 league
 // enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // review wording/verbiage on front page, info page, etc.
