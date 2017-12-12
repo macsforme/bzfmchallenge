@@ -1204,9 +1204,8 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 					if($result['enough'])
 						$sufficiencyTimes[$result['teamID']] = strtotime($result['sufficiencyTime']);
 				asort($sufficiencyTimes);
-				while(count($sufficiencyTimes) > $resultArray[0]['maxTeams']) {
+				while(count($sufficiencyTimes) > $resultArray[0]['maxTeams'])
 					array_pop($sufficiencyTimes);
-				}
 				$grayList = Array();
 				foreach($resultArray as $result) {
 					if($result['enough'] && array_key_exists($result['teamID'], $sufficiencyTimes)) {
@@ -1229,10 +1228,11 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 						}
 					}
 				}
+				$eventFull = $teamCount >= $resultArray[0]['maxTeams'];
 				foreach($grayList as $resultTime => $grayListLine) {
 					foreach($grayListLine as $result) {
 						if($resultTime == 0) {
-							echo "\t\t\t\t<tr".($altRow ? " class=\"altRow\"" : "")."><td>&nbsp;</td><td>&nbsp;</td><td class=\"leftAlign\">".$result['members']."</td></tr>\n";
+							echo "\t\t\t\t<tr".(($altRow || $eventFull) ? ' class="'.($altRow ? 'altRow'.($eventFull ? ' ' : '') : '').($eventFull ? 'gray' : '').'"' : '')."><td>&nbsp;</td><td>&nbsp;</td><td class=\"leftAlign\">".$result['members']."</td></tr>\n";
 							$altRow = ! $altRow;
 							++$teamCount;
 						}
