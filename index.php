@@ -210,7 +210,7 @@ case 'login':
 						$groups = preg_split('/\:/', substr($validationResponse[1], 9));
 						array_shift($groups);
 						$_SESSION['groups'] = $groups;
-						if($configUp && count($_SESSION['groups']) == 0) {
+						if($configUp && (count($_SESSION['groups']) == 0 || (count($_SESSION['groups']) == 1 && $_SESSION['groups'][0] == ''))) {
 							unset($_SESSION['bzid']);
 							header('Location: '.$baseURL.'?action=loginnotpermitted');
 							exit;
