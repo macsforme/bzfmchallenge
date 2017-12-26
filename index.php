@@ -1129,6 +1129,15 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 							echo "\t\t\t\t</tr>\n";
 							echo "\t\t\t\t<tr><td colspan=\"".(count($columns) * 3)."\">&nbsp;</td></tr>\n";
 							for($row = pow(2, $columns[0] - 1) - 1; $row < count($rankOrder) * 2 - 1; $row += pow(2, $columns[0] - 1)) {
+								$rowIsBlank = TRUE;
+								foreach($columns as $columnIndex => $column) {
+									if($gridSpaces[$column - 1][$row]['cellType'] != 'none') {
+										$rowIsBlank = FALSE;
+										break;
+									}
+								}
+								if($rowIsBlank)
+									continue;
 								echo "\t\t\t\t<tr>\n";
 								foreach($columns as $columnIndex => $column) {
 									$gridSpace =& $gridSpaces[$column - 1][$row];
