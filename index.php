@@ -92,23 +92,24 @@ if(file_exists('config.php')) {
 }
 
 // update any outdated table structure
-$queryResult = $mysqli->query('DESCRIBE '.$mySQLPrefix.'teams'); // default value of teams->sufficiencyTime was changed from '0000-00-00 00:00:00' to NULL
-if($queryResult && $queryResult->num_rows > 0) {
-	$resultArray = NULL;
-	do {
-		$resultArray = $queryResult->fetch_assoc();
-	} while($resultArray != NULL && $resultArray['Field'] != 'sufficiencyTime');
-	if($resultArray['Field'] == 'sufficiencyTime')
-		if($resultArray['Null'] != 'YES' || $resultArray['Default'] != '')
-			$mysqli->query('ALTER TABLE teams MODIFY COLUMN sufficiencyTime TIMESTAMP NULL');
+if($databaseUp) {
+	$queryResult = $mysqli->query('DESCRIBE '.$mySQLPrefix.'teams'); // default value of teams->sufficiencyTime was changed from '0000-00-00 00:00:00' to NULL
+	if($queryResult && $queryResult->num_rows > 0) {
+		$resultArray = NULL;
+		do {
+			$resultArray = $queryResult->fetch_assoc();
+		} while($resultArray != NULL && $resultArray['Field'] != 'sufficiencyTime');
+		if($resultArray['Field'] == 'sufficiencyTime')
+			if($resultArray['Null'] != 'YES' || $resultArray['Default'] != '')
+				$mysqli->query('ALTER TABLE teams MODIFY COLUMN sufficiencyTime TIMESTAMP NULL');
+	}
+	$queryResult = $mysqli->query('SELECT id FROM '.$mySQLPrefix.'teams WHERE sufficiencyTime="0000-00-00 00:00:00"'); // there may have been rows with the old default '0000-00-00 00:00:00' value for sufficiencyTime
+	if($queryResult && $queryResult->num_rows > 0) {
+		$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
+		foreach($resultArray as $row)
+			$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime=NULL WHERE id='.$row['id']);
+	}
 }
-$queryResult = $mysqli->query('SELECT id FROM '.$mySQLPrefix.'teams WHERE sufficiencyTime="0000-00-00 00:00:00"'); // there may have been rows with the old default '0000-00-00 00:00:00' value for sufficiencyTime
-if($queryResult && $queryResult->num_rows > 0) {
-	$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
-	foreach($resultArray as $row)
-		$mysqli->query('UPDATE '.$mySQLPrefix.'teams SET sufficiencyTime=NULL WHERE id='.$row['id']);
-}
-
 
 // check for site configuration in database
 $configUp = FALSE;
