@@ -413,21 +413,33 @@ case 'deleteevent':
 	exit;
 
 case 'editevent':
-	if($isAdmin && $configUp && is_numeric($_POST['maxTeams']) && is_numeric($_POST['minTeamSize']) && is_numeric($_POST['maxTeamSize']) && is_numeric($_POST['month']) && is_numeric($_POST['day']) && is_numeric($_POST['year']) && is_numeric($_POST['hour']) && is_numeric($_POST['minute']) && is_numeric($_POST['registrationBuffer'])) {
+	if($isAdmin && $configUp && isset($_POST['description']) && $_POST['description'] != "" && is_numeric($_POST['maxTeams']) && is_numeric($_POST['minTeamSize']) && is_numeric($_POST['maxTeamSize']) && is_numeric($_POST['month']) && is_numeric($_POST['day']) && is_numeric($_POST['year']) && is_numeric($_POST['hour']) && is_numeric($_POST['minute']) && is_numeric($_POST['registrationBuffer']) && isset($_POST['memberGroups']) && $_POST['memberGroups'] != "") {
 		$groups = preg_split('/\s/', urldecode(strtoupper($_POST['memberGroups'])), NULL, PREG_SPLIT_NO_EMPTY);
 		$groups = preg_split('/\,/', implode(',', $groups), NULL, PREG_SPLIT_NO_EMPTY);
 		$groups = implode(',', $groups);
 		if($_POST['existing']) {
-			$queryResult = $mysqli->query('SELECT MAX(startTime) FROM '.$mySQLPrefix.'events');
+			$queryResult = $mysqli->query('SELECT maxTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_assoc();
-				$mysqli->query('UPDATE '.$mySQLPrefix.'events SET description="'.$mysqli->real_escape_string($_POST['description']).'",maxTeams='.$_POST['maxTeams'].',minTeamSize='.$_POST['minTeamSize'].',maxTeamSize='.$_POST['maxTeamSize'].',startTime="'.date("Y-m-d H:i:s", strtotime($_POST['year'].'-'.$_POST['month'].'-'.$_POST['day'].' '.$_POST['hour'].':'.$_POST['minute'].':00')).'",registrationBuffer='.$_POST['registrationBuffer'].',memberGroups="'.$mysqli->real_escape_string($groups).'" WHERE startTime="'.$resultArray['MAX(startTime)'].'"');
+				if($queryResult && $queryResult->num_rows > 0) {
+					if($resultArray['maxTeams'] != $_POST['maxTeams']) {
+						$priorMaxTeams = $resultArray['maxTeams'];
+						$queryResult = $mysqli->query('SELECT matchNumber FROM '.$mySQLPrefix.'results WHERE event='.$currentEvent);
+						if($queryResult && $queryResult->num_rows > 0) {
+							$error = "The maximum team count cannot be changed after results have been entered.";
+							$_POST['maxTeams'] = $priorMaxTeams;
+						}
+					}
+				}
+				$mysqli->query('UPDATE '.$mySQLPrefix.'events SET description="'.$mysqli->real_escape_string($_POST['description']).'",maxTeams='.$_POST['maxTeams'].',minTeamSize='.$_POST['minTeamSize'].',maxTeamSize='.$_POST['maxTeamSize'].',startTime="'.date("Y-m-d H:i:s", strtotime($_POST['year'].'-'.$_POST['month'].'-'.$_POST['day'].' '.$_POST['hour'].':'.$_POST['minute'].':00')).'",registrationBuffer='.$_POST['registrationBuffer'].',memberGroups="'.$mysqli->real_escape_string($groups).'" WHERE id='.$currentEvent);
 			}
 		} else {
 			$mysqli->query('INSERT INTO '.$mySQLPrefix.'events SET description="'.$mysqli->real_escape_string($_POST['description']).'",maxTeams='.$_POST['maxTeams'].',minTeamSize='.$_POST['minTeamSize'].',maxTeamSize='.$_POST['maxTeamSize'].',startTime="'.date("Y-m-d H:i:s", strtotime($_POST['year'].'-'.$_POST['month'].'-'.$_POST['day'].' '.$_POST['hour'].':'.$_POST['minute'].':00')).'",registrationBuffer='.$_POST['registrationBuffer'].',memberGroups="'.$mysqli->real_escape_string($groups).'"');
 			header('Location: '.$baseURL.'?action=admin'); // our $currentEvent is now thoroughly screwed, so start over
 			exit;
 		}
+	} else {
+		$error = "Event information contained malformed data.";
 	}
 	break;
 
@@ -720,7 +732,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		$resultArray = $queryResult->fetch_assoc();
 		echo "\t\t\t<h1>Current Event Information</h1>\n";
 		echo "\t\t\t<table>\n";
-		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Description:</b></td><td class=\"leftAlign\">".$resultArray['description']."</td></tr>\n";
+		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Event Name:</b></td><td class=\"leftAlign\">".$resultArray['description']."</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Teams:</b></td><td class=\"leftAlign\">".$resultArray['maxTeams']."</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Minimum Team Size:</b></td><td class=\"leftAlign\">".$resultArray['minTeamSize']."</td></tr>\n";
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Team Size:</b></td><td class=\"leftAlign\">".$resultArray['maxTeamSize']."</td></tr>\n";
@@ -840,7 +852,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	}
 	$dateElements = Array();
 	preg_match('/^(\d+)-(\d+)-(\d+)\s(\d+):(\d+):\d+$/', $resultArray['startTime'], $dateElements);
-	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Description:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"description\" value=\"".$resultArray['description']."\" size=\"50\"></td></tr>\n";
+	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Event Name:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"description\" value=\"".$resultArray['description']."\" size=\"50\"></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Teams:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"maxTeams\" value=\"".$resultArray['maxTeams']."\" size=\"4\" maxlength=\"4\"></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Minimum Team Size:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"minTeamSize\" value=\"".$resultArray['minTeamSize']."\" size=\"3\" maxlength=\"3\"></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Team Size:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"maxTeamSize\" value=\"".$resultArray['maxTeamSize']."\" size=\"3\" maxlength=\"3\"></td></tr>\n";
@@ -1321,7 +1333,6 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// validate team info edits (event name required, description -> event name, can't change maximum teams if results exist)
 // enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // review wording/verbiage on front page, info page, etc.
 // appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
