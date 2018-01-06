@@ -571,7 +571,7 @@ echo "\t\t<title>BZ FM Challenge</title>\n";
 echo "\t</head>\n";
 echo "\t<body>\n";
 echo "\t\t<div class=\"headerBox\">\n";
-echo "\t\t\t<img src=\"bzicon.png\">\n";
+echo "\t\t\t<img src=\"bzicon.png\" alt=\"icon\">\n";
 echo "\t\t\tBZFLAG FUNMATCH CHALLENGE\n";
 echo "\t\t</div>\n";
 echo "\t\t<ul class=\"headerButtons\">\n";
@@ -642,18 +642,17 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 					$queryResult = $mysqli->query('SELECT bzid,callsign FROM '.$mySQLPrefix.'users WHERE '.$mySQLPrefix.'users.bzid NOT IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) AND bzid NOT IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE team='.$resultArray['team'].') AND lastEvent='.$currentEvent.' ORDER BY callsign');
 					if($queryResult && $queryResult->num_rows > 0) {
 						$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
-						echo "\t\t\t\t\t<p class=\"tight\">\n";
-						echo "\t\t\t\t\t\tPlayers:\n";
-						echo "\t\t\t\t\t\t<select name=\"bzids[]\" multiple>\n";
+						echo "\t\t\t\t\tPlayers:\n";
+						echo "\t\t\t\t\t<select name=\"bzids[]\" multiple>\n";
 						foreach($resultArray as $user)
-							echo "\t\t\t\t\t\t\t<option value=\"".$user['bzid']."\">".$user['callsign']."</option>\n";
-						echo "\t\t\t\t\t\t</select>\n";
-						echo "\t\t\t\t\t\t<i>(hold down ctrl/command to select multiple)</i>\n";
-						echo "\t\t\t\t\t</p>\n";
+							echo "\t\t\t\t\t\t<option value=\"".$user['bzid']."\">".$user['callsign']."</option>\n";
+						echo "\t\t\t\t\t</select>\n";
+						echo "\t\t\t\t\t<i>(hold down ctrl/command to select multiple)</i>\n";
 						echo "\t\t\t\t\t<br>\n";
-						echo "\t\t\t\t\t<p class=\"tight\"><input type=\"submit\" value=\"Invite\" class=\"submitButton\"></p>\n";
+						echo "\t\t\t\t\t<br>\n";
+						echo "\t\t\t\t\t<input type=\"submit\" value=\"Invite\" class=\"submitButton\">\n";
 					} else {
-						echo "\t\t\t\t\t<p><i>No teamless players available.</i></p>\n";
+						echo "\t\t\t\t\t<i>No teamless players available.</i>\n";
 					}
 					echo "\t\t\t\t</fieldset>\n";
 					echo "\t\t\t</form>\n";
@@ -662,10 +661,9 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		} else if (! $eventClosed) {
 			$queryResult = $mysqli->query('SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NULL AND team IN (SELECT id FROM teams WHERE event='.$currentEvent.')');
 			if($queryResult && $queryResult->num_rows > 0) {
-				echo "\t\t\t<p>\n";
-				echo "\t\t\t\t<form action=\".?action=acceptinvitation\" method=\"POST\">\n";
-				echo "\t\t\t\t\t<fieldset>\n";
-				echo "\t\t\t\t\t\t<legend>Invitations</legend>\n";
+				echo "\t\t\t<form action=\".?action=acceptinvitation\" method=\"POST\">\n";
+				echo "\t\t\t\t<fieldset>\n";
+				echo "\t\t\t\t\t<legend>Invitations</legend>\n";
 				$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
 				foreach($resultArray as $team) {
 					$queryResult = $mysqli->query('SELECT callsign FROM '.$mySQLPrefix.'users WHERE bzid IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE team='.$team['team'].' AND rating IS NOT NULL) ORDER BY callsign');
@@ -675,37 +673,34 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 						foreach($resultArray as $name)
 							array_push($names, $name['callsign']);
 						$names = implode(', ',$names);
-						echo "\t\t\t\t\t\t<input type=\"radio\" name=\"team\" value=\"".$team['team']."\"> ".$names."<br>\n";
+						echo "\t\t\t\t\t<input type=\"radio\" name=\"team\" value=\"".$team['team']."\"> ".$names."<br>\n";
 					}
 				}
-				echo "\t\t\t\t\t\t<br>\n";
-				echo "\t\t\t\t\t\t<input type=\"submit\" value=\"Accept Invitation\" class=\"submitButton\">\n";
-				echo "\t\t\t\t\t</fieldset>\n";
-				echo "\t\t\t\t</form>\n";
-				echo "\t\t\t</p>\n";
+				echo "\t\t\t\t\t<br>\n";
+				echo "\t\t\t\t\t<input type=\"submit\" value=\"Accept Invitation\" class=\"submitButton\">\n";
+				echo "\t\t\t\t</fieldset>\n";
+				echo "\t\t\t</form>\n";
 			}
-			echo "\t\t\t<p>\n";
-			echo "\t\t\t\t<form action=\".?action=createteam\" method=\"POST\">\n";
-			echo "\t\t\t\t\t<fieldset>\n";
-			echo "\t\t\t\t\t\t<legend>Create Team</legend>\n";
+			echo "\t\t\t<form action=\".?action=createteam\" method=\"POST\">\n";
+			echo "\t\t\t\t<fieldset>\n";
+			echo "\t\t\t\t\t<legend>Create Team</legend>\n";
 			$queryResult = $mysqli->query('SELECT '.$mySQLPrefix.'users.bzid,'.$mySQLPrefix.'users.callsign,'.$mySQLPrefix.'events.maxTeamSize FROM '.$mySQLPrefix.'users,'.$mySQLPrefix.'events WHERE '.$mySQLPrefix.'users.bzid NOT IN (SELECT bzid FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')) AND bzid<>'.$_SESSION['bzid'].' AND '.$mySQLPrefix.'events.id='.$currentEvent.' AND lastEvent='.$currentEvent.' ORDER BY '.$mySQLPrefix.'users.callsign');
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
-				echo "\t\t\t\t\t\tPlayers:\n";
-				echo "\t\t\t\t\t\t<select name=\"bzids[]\" multiple>\n";
+				echo "\t\t\t\t\tPlayers:\n";
+				echo "\t\t\t\t\t<select name=\"bzids[]\" multiple>\n";
 				foreach($resultArray as $user)
-					echo "\t\t\t\t\t\t\t<option value=\"".$user['bzid']."\">".$user['callsign']."</option>\n";
-				echo "\t\t\t\t\t\t</select>\n";
-				echo "\t\t\t\t\t\t<i>(hold down ctrl/command to select multiple; maximum team size is ".$resultArray[0]['maxTeamSize'].")</i>\n";
-				echo "\t\t\t\t\t\t<br>\n";
-				echo "\t\t\t\t\t\t<br>\n";
-				echo "\t\t\t\t\t\t<input type=\"submit\" value=\"Create Team\" class=\"submitButton\">\n";
+					echo "\t\t\t\t\t\t<option value=\"".$user['bzid']."\">".$user['callsign']."</option>\n";
+				echo "\t\t\t\t\t</select>\n";
+				echo "\t\t\t\t\t<i>(hold down ctrl/command to select multiple; maximum team size is ".$resultArray[0]['maxTeamSize'].")</i>\n";
+				echo "\t\t\t\t\t<br>\n";
+				echo "\t\t\t\t\t<br>\n";
+				echo "\t\t\t\t\t<input type=\"submit\" value=\"Create Team\" class=\"submitButton\">\n";
 			} else {
-				echo "\t\t\t\t\t\t<i>No other teamless players available.</i>\n";
+				echo "\t\t\t\t\t<i>No other teamless players available.</i>\n";
 			}
-			echo "\t\t\t\t\t</fieldset>\n";
-			echo "\t\t\t\t</form>\n";
-			echo "\t\t\t</p>\n";
+			echo "\t\t\t\t</fieldset>\n";
+			echo "\t\t\t</form>\n";
 		}
 	}
 } else if($configUp && isset($_GET['action']) && $_GET['action'] == 'info') {
@@ -1330,15 +1325,18 @@ echo "</html>\n";
 // check apache errors, search for dummy_, search for 9972, delete extraneous comments
 // check tabbed format in HTML output
 // check for prefix with every FROM/INTO query (including table.column specifications)
-// validate HTML
-	// missing or bad database
+// validate HTML 4 strict
+	// no config or missing/bad database
 	// config prompt
 	// home/no events
 	// home/event started
-	// home/event closed/all results in/as admin
+	// home/event closed
+	// home/all results in
+	// home/all results in (as admin)
 	// info
 	// registration no event
-	// registration event open on team with opening
+	// registration with invitations pending
+	// registration on team with opening and others to invite
 	// abandon team
 	// admin/event open/1 player banned
 	// create event
@@ -1354,7 +1352,6 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // work out spacing between main content, <p>, tables, fieldset, <h1>, etc.
 
 ?>
