@@ -855,6 +855,13 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		if($queryResult && $queryResult->num_rows > 0)
 			$registrationsExist = TRUE;
 	}
+	$resultsExist = FALSE;
+	if($_GET['action'] == 'prompteditevent') {
+		$queryResult = $mysqli->query('SELECT matchNumber FROM '.$mySQLPrefix.'results WHERE event='.$currentEvent);
+		if($queryResult && $queryResult->num_rows > 0)
+			$resultsExist = TRUE;
+	}
+
 	echo "\t\t\t<h1>".($_GET['action'] == "promptcreateevent" ? "Create Event" : "Edit Event")."</h1>\n";
 	echo "\t\t\t<form action=\".?action=editevent\" method=\"POST\">\n";
 	echo "\t\t\t\t<p class=\"tight\"><input type=\"hidden\" name=\"existing\" value=\"".($_GET['action'] == "promptcreateevent" ? "0" : "1")."\"></p>\n";
@@ -862,14 +869,13 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	$resultArray = Array('description' => '', 'maxTeams' => 16, 'minTeamSize' => 2, 'maxTeamSize' => 3, 'startTime' => date("Y-m-d H:i:s"), 'registrationBuffer' => 2880, 'memberGroups' => 'LU.PLAYER');
 	if($_GET['action'] == "prompteditevent") {
 		$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent);
-		if($queryResult && $queryResult->num_rows > 0) {
+		if($queryResult && $queryResult->num_rows > 0)
 			$resultArray = $queryResult->fetch_assoc();
-		}
 	}
 	$dateElements = Array();
 	preg_match('/^(\d+)-(\d+)-(\d+)\s(\d+):(\d+):\d+$/', $resultArray['startTime'], $dateElements);
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Event Name:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"description\" value=\"".$resultArray['description']."\" size=\"50\"></td></tr>\n";
-	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Teams:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"maxTeams\" value=\"".$resultArray['maxTeams']."\" size=\"4\" maxlength=\"4\"></td></tr>\n";
+	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Teams:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"maxTeams\" value=\"".$resultArray['maxTeams']."\" size=\"4\" maxlength=\"4\"".($resultsExist ? " readonly" : "")."></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Minimum Team Size:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"minTeamSize\" value=\"".$resultArray['minTeamSize']."\" size=\"3\" maxlength=\"3\"".($registrationsExist ? " readonly" : "")."></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Maximum Team Size:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"maxTeamSize\" value=\"".$resultArray['maxTeamSize']."\" size=\"3\" maxlength=\"3\"".($registrationsExist ? " readonly" : "")."></td></tr>\n";
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><b>Start Date/Time:</b></td><td class=\"leftAlign\"><input type=\"text\" name=\"month\" value=\"".$dateElements[2]."\" size=\"2\" maxlength=\"2\"><input type=\"text\" name=\"day\" value=\"".$dateElements[3]."\" size=\"2\" maxlength=\"2\"><input type=\"text\" name=\"year\" value=\"".$dateElements[1]."\" size=\"4\" maxlength=\"4\">&nbsp;<input type=\"text\" name=\"hour\" value=\"".$dateElements[4]."\" size=\"2\" maxlength=\"2\"><input type=\"text\" name=\"minute\" value=\"".$dateElements[5]."\" size=\"2\" maxlength=\"2\"> GMT <i>(MM DD YYYY HH MM)</i></td></tr>\n";
