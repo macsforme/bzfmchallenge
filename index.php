@@ -480,7 +480,7 @@ case 'admingroups':
 
 case 'promptenterresult':
 case 'enterresult':
-	if(! $isAdmin || ! is_numeric($_POST['match']) || (! is_numeric($_POST['team1Score']) && $_POST['team1Score'] != '') || (! is_numeric($_POST['team2Score']) && $_POST['team2Score'] != '') || (! is_numeric($_POST['disqualifyTeam']) && $_POST['disqualifyTeam'] != '') || ! $eventClosed) {
+	if(! $isAdmin || ! is_numeric($_POST['match']) || ! $eventClosed) {
 		header('Location: '.$baseURL);
 		exit;
 	}
@@ -498,11 +498,21 @@ case 'enterresult':
 			exit;
 		}
 	}
-	if($_GET['action'] == 'enterresult' && $_POST['team1Score'] != '' && $_POST['team2Score'] != '' && $_POST['disqualifyTeam'] != '') {
-		$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'results WHERE matchNumber='.getDependentMatchNumber($_POST['match']).' AND event='.$currentEvent);
-		if(! $queryResult || $queryResult->num_rows == 0) {
-			$mysqli->query('DELETE FROM '.$mySQLPrefix.'results WHERE matchNumber='.$_POST['match'].' AND event='.$currentEvent);
-			$mysqli->query('INSERT INTO '.$mySQLPrefix.'results SET matchNumber='.$_POST['match'].',team1Score='.$_POST['team1Score'].',team2Score='.$_POST['team2Score'].',disqualifyTeam='.$_POST['disqualifyTeam'].',event='.$currentEvent);
+	if($_GET['action'] == 'enterresult') {
+		if(! isset($_POST['team1Score']) || ! isset($_POST['team2Score']) || ! isset($_POST['disqualifyTeam']) || ! is_numeric($_POST['disqualifyTeam'])) {
+			header('Location: '.$baseURL);
+			exit;
+		}
+		if(! is_numeric($_POST['team1Score']) || ! is_numeric($_POST['team2Score'])) {
+			$error = "Both team scores must be specified. Use zeros if a team was disqualified before the match was played.";
+		} else {
+			$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'results WHERE matchNumber='.getDependentMatchNumber($_POST['match']).' AND event='.$currentEvent);
+			if(! $queryResult || $queryResult->num_rows == 0) {
+				$mysqli->query('DELETE FROM '.$mySQLPrefix.'results WHERE matchNumber='.$_POST['match'].' AND event='.$currentEvent);
+				$mysqli->query('INSERT INTO '.$mySQLPrefix.'results SET matchNumber='.$_POST['match'].',team1Score='.$_POST['team1Score'].',team2Score='.$_POST['team2Score'].',disqualifyTeam='.$_POST['disqualifyTeam'].',event='.$currentEvent);
+			} else {
+				$error = "This match result cannot be updated because a dependent match result from the next bracket has already been entered.";
+			}
 		}
 	}
 	break;
@@ -1333,7 +1343,6 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// enter match page should show an error when no scores are entered, and/or accept a disqualification or one number only and fill in the other zeros
 // review wording/verbiage on front page, info page, etc.
 // appearance issue: strict HTML requres all buttons and text in forms be in <p>, but this messes up spacing, especially in frameset... figure out where spacing should be... maybe use <span> instead for buttons? also extra space at end of some pages... hangoff at end of bracket
 // work out spacing between main content, <p>, tables, fieldset, <h1>, etc.
