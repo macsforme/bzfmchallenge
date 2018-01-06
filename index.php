@@ -204,31 +204,31 @@ case 'login':
 		if(preg_match('/^TOKGOOD/', $validationResponse[1]) != FALSE) {
 			$matches = Array(); preg_match('/^BZID:\s(\d+)\s(.*)$/', $validationResponse[2], $matches);
 			if(is_numeric($matches[1])) {
+				$resultArray = Array();
 				$queryResult = $mysqli->query('SELECT bzid FROM '.$mySQLPrefix.'users');
-				if($queryResult && $queryResult->num_rows > 0) {
+				if($queryResult && $queryResult->num_rows > 0)
 					$resultArray = $queryResult->fetch_assoc();
-					if($configUp || $queryResult->num_rows == 0 || ($queryResult->num_rows == 1 && $resultArray['bzid'] == $matches[1])) {
-						$groups = preg_split('/\:/', substr($validationResponse[1], 9));
-						array_shift($groups);
-						$_SESSION['groups'] = $groups;
-						if($configUp && (count($_SESSION['groups']) == 0 || (count($_SESSION['groups']) == 1 && $_SESSION['groups'][0] == ''))) {
-							unset($_SESSION['bzid']);
-							header('Location: '.$baseURL.'?action=loginnotpermitted');
-							exit;
+				if($configUp || $queryResult->num_rows == 0 || ($queryResult->num_rows == 1 && $resultArray['bzid'] == $matches[1])) {
+					$groups = preg_split('/\:/', substr($validationResponse[1], 9));
+					array_shift($groups);
+					$_SESSION['groups'] = $groups;
+					if($configUp && (count($_SESSION['groups']) == 0 || (count($_SESSION['groups']) == 1 && $_SESSION['groups'][0] == ''))) {
+						unset($_SESSION['bzid']);
+						header('Location: '.$baseURL.'?action=loginnotpermitted');
+						exit;
+					}
+					$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'users WHERE bzid='.$matches[1]);
+					if($queryResult && $queryResult->num_rows > 0) {
+						$queryResult = $mysqli->query('UPDATE '.$mySQLPrefix.'users SET callsign="'.$mysqli->real_escape_string($matches[2]).'" WHERE bzid='.$matches[1]);
+						if($queryResult) {
+							$_SESSION['bzid'] = $matches[1];
+							$_SESSION['callsign'] = $matches[2];
 						}
-						$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'users WHERE bzid='.$matches[1]);
-						if($queryResult && $queryResult->num_rows > 0) {
-							$queryResult = $mysqli->query('UPDATE '.$mySQLPrefix.'users SET callsign="'.$mysqli->real_escape_string($matches[2]).'" WHERE bzid='.$matches[1]);
-							if($queryResult) {
-								$_SESSION['bzid'] = $matches[1];
-								$_SESSION['callsign'] = $matches[2];
-							}
-						} else {
-							$queryResult = $mysqli->query('INSERT INTO '.$mySQLPrefix.'users (bzid,callsign) VALUES ('.$matches[1].',"'.$mysqli->real_escape_string($matches[2]).'")');
-							if($queryResult) {
-								$_SESSION['bzid'] = $matches[1];
-								$_SESSION['callsign'] = $matches[2];
-							}
+					} else {
+						$queryResult = $mysqli->query('INSERT INTO '.$mySQLPrefix.'users (bzid,callsign) VALUES ('.$matches[1].',"'.$mysqli->real_escape_string($matches[2]).'")');
+						if($queryResult) {
+							$_SESSION['bzid'] = $matches[1];
+							$_SESSION['callsign'] = $matches[2];
 						}
 					}
 				}
