@@ -9,22 +9,19 @@
 // By Joshua Bodine
 // https://github.com/macsforme/bzfmchallenge
 
-/////////////////////////////////// License ///////////////////////////////////
+// This software is released under the MIT license. Please see the accompanying file LICENSE.txt for details.
 
-// Copyright (c) 2013-2018, Joshua Bodine
-// All rights reserved.
+// Please see the accompanying file README.txt for setup information.
 
-// Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//////////////////////////////////// TODO /////////////////////////////////////
 
-// 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+// no items
 
-// 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+////////////////////////// Future Improvement Ideas ///////////////////////////
 
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-//////////////////////////////////// Setup ////////////////////////////////////
-
-// To set up this web site, you must create a MySQL database, import the table structure located in setup/database.sql, and set up MySQL user credentials to access this database. Then, you must copy the file setup/config.example.php into this directory, edit it with the appropriate settings, and rename it to config.php. Navigate to this web site in a web browser to complete setup. If you are upgrading from a previous version with a different database structure, replace the files and see the file setup/database.sql in the later version for (commented-out) commands to update your tables from the appropriate earlier version.
+// make single player teams work
+// action logging and viewing
+// use mod_rewrite for/pretty/action/URLs
 
 ////////////////////////////// Development Notes //////////////////////////////
 
@@ -39,6 +36,30 @@
 //
 //	$currentEvent infers $configUp
 //	$configUp infers $databaseUp
+
+//////////////////////////// Pre-Release Checklist ////////////////////////////
+
+// check apache errors, search for dummy_, search for 9972, delete extraneous comments
+// check tabbed format in HTML output
+// check for prefix with every FROM/INTO query (including table.column specifications)
+// validate HTML 4 strict
+	// no config or missing/bad database
+	// config prompt
+	// home/no events
+	// home/event started
+	// home/event closed
+	// home/all results in
+	// home/all results in (as admin)
+	// info
+	// registration no event
+	// registration with invitations pending
+	// registration on team with opening and others to invite
+	// abandon team
+	// admin/event open/1 player banned
+	// create event
+	// edit event
+	// delete event
+	// enter result
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// UTILITY FUNCTIONS //////////////////////////////
@@ -1321,44 +1342,5 @@ echo "\t\t\t<a href=\"https://github.com/macsforme/bzfmchallenge\">https://githu
 echo "\t\t</div>\n";
 echo "\t</body>\n";
 echo "</html>\n";
-
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////// SCRATCH ///////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////// Pre-Release Checklist ////////////////////////////
-
-// check apache errors, search for dummy_, search for 9972, delete extraneous comments
-// check tabbed format in HTML output
-// check for prefix with every FROM/INTO query (including table.column specifications)
-// validate HTML 4 strict
-	// no config or missing/bad database
-	// config prompt
-	// home/no events
-	// home/event started
-	// home/event closed
-	// home/all results in
-	// home/all results in (as admin)
-	// info
-	// registration no event
-	// registration with invitations pending
-	// registration on team with opening and others to invite
-	// abandon team
-	// admin/event open/1 player banned
-	// create event
-	// edit event
-	// delete event
-	// enter result
-
-////////////////////////// Future Improvement Ideas ///////////////////////////
-
-// make single player teams work
-// action logging and viewing
-// use mod_rewrite for/pretty/action/URLs
-
-//////////////////////////////////// TODO /////////////////////////////////////
-
-// split some info in this file out into a README file along with the license information
-// update the setup information and correct the outdated database upgrade instructions
 
 ?>
