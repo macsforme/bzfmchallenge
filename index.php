@@ -11,7 +11,7 @@
 
 /////////////////////////////////// License ///////////////////////////////////
 
-// Copyright (c) 2013-2017, Joshua Bodine
+// Copyright (c) 2013-2018, Joshua Bodine
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -751,23 +751,23 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 		echo "\t\t\t\t<tr><td class=\"rightAlign\"><b>Member Groups:</b></td><td class=\"leftAlign\">".$resultArray['memberGroups']."</td></tr>\n";
 		echo "\t\t\t</table>\n";
 		echo "\t\t\t<h1>Event Manipulations</h1>\n";
-		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"prompteditevent\"><input type=\"submit\" value=\"Edit Event Information\" class=\"submitButton\"></p></form>\n";
+		echo "\t\t\t<form action=\".\" method=\"GET\"><p class=\"compact\"><input type=\"hidden\" name=\"action\" value=\"prompteditevent\"><input type=\"submit\" value=\"Edit Event Information\" class=\"submitButton\"></p></form>\n";
 		$queryResult = $mysqli->query('SELECT COUNT(*) FROM '.$mySQLPrefix.'results WHERE event='.$currentEvent);
 		if($queryResult && $queryResult->num_rows > 0) {
 			$resultArray = $queryResult->fetch_row();
 			if($resultArray[0] == 0) {
 				if($eventClosed)
-					echo "\t\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"openevent\"><input type=\"submit\" value=\"Open Registration\" class=\"submitButton\"></p></form>\n";
+					echo "\t\t\t\t<form action=\".\" method=\"GET\"><p class=\"compact\"><input type=\"hidden\" name=\"action\" value=\"openevent\"><input type=\"submit\" value=\"Open Registration\" class=\"submitButton\"></p></form>\n";
 				else
-					echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"closeevent\"><input type=\"submit\" value=\"Close Registration\" class=\"submitButton\"></p></form>\n";
-				echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"updateseeding\"><input type=\"submit\" value=\"Update Seeding\" class=\"submitButton\"></p></form>\n";
+					echo "\t\t\t<form action=\".\" method=\"GET\"><p class=\"compact\"><input type=\"hidden\" name=\"action\" value=\"closeevent\"><input type=\"submit\" value=\"Close Registration\" class=\"submitButton\"></p></form>\n";
+				echo "\t\t\t<form action=\".\" method=\"GET\"><p class=\"compact\"><input type=\"hidden\" name=\"action\" value=\"updateseeding\"><input type=\"submit\" value=\"Update Seeding\" class=\"submitButton\"></p></form>\n";
 			}
 		}
-		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptdeleteevent\"><input type=\"submit\" value=\"Delete Event\" class=\"submitButton\"></p></form>\n";
+		echo "\t\t\t<form action=\".\" method=\"GET\"><p class=\"compact\"><input type=\"hidden\" name=\"action\" value=\"promptdeleteevent\"><input type=\"submit\" value=\"Delete Event\" class=\"submitButton\"></p></form>\n";
 		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptcreateevent\"><input type=\"submit\" value=\"Create New Event\" class=\"submitButton\"></p></form>\n";
 	} else {
 		echo "\t\t\t<h1>Event Manipulations</h1>\n";
-		echo "\t\t\t<form action=\".\" method=\"GET\"><input type=\"hidden\" name=\"action\" value=\"promptcreateevent\"><input type=\"submit\" value=\"Create New Event\" class=\"submitButton\"></p></form>\n";
+		echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"hidden\" name=\"action\" value=\"promptcreateevent\"><input type=\"submit\" value=\"Create New Event\" class=\"submitButton\"></p></form>\n";
 	}
 	echo "\t\t\t<h1>Other Administrative Tasks</h1>\n";
 	$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'users WHERE banned=FALSE ORDER BY callsign');
@@ -1358,6 +1358,7 @@ echo "</html>\n";
 
 //////////////////////////////////// TODO /////////////////////////////////////
 
-// work out spacing between main content, <p>, tables, fieldset, <h1>, etc.
+// split some info in this file out into a README file along with the license information
+// update the setup information and correct the outdated database upgrade instructions
 
 ?>
