@@ -78,10 +78,9 @@ function getDependentMatchNumber($match) {
 function getRatings($bzids) {
 	$ratings = Array();
 	$matches = array();
-	preg_match_all('/\{\"id\"\:\d+\,\"bzid\"\:\"(\d+)\"\,\"alias\"\:\".*?\"\,\"username\"\:\".*?\"\,\"team\"\:.*?\,\"url\"\:\".*?\"\,\"elo\"\:(\d+)\}/', file_get_contents('http://leaguesunited.org/api/players?bzids='.implode(',', $bzids)), $matches, PREG_SET_ORDER);
-	foreach($matches as $player)
-		if(is_numeric($player[1]) && is_numeric($player[2]) && in_array($player[1], $bzids))
-			$ratings[$player[1]] = $player[2];
+	foreach(json_decode(file_get_contents('http://leaguesunited.org/api/players?bzids='.implode(',', $bzids)), TRUE)['players'] as $player)
+		if(is_numeric($player['bzid']) && is_numeric($player['elo']) && in_array($player['bzid'], $bzids))
+			$ratings[$player['bzid']] = $player['elo'];
 	return $ratings;
 }
 
