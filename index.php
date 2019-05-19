@@ -31,8 +31,8 @@
 //	any content intended for output (direct output, or variables intended for later output, like $error)
 //
 // for state tracking variables, the following relationships are inferred (avoid redundant checks, and use only the highest level check necessary)
-//	$isAdmin infers isset($_SESSION['bzid'])
-//	isset($_SESSION['bzid']) infers $databaseUp
+//	$isAdmin infers array_key_exists('bzid', $_SESSION)
+//	array_key_exists('bzid', $_SESSION) infers $databaseUp
 //
 //	$currentEvent infers $configUp
 //	$configUp infers $databaseUp
@@ -170,7 +170,7 @@ session_start();
 
 // check for admin status (actions manipulating this will refresh the page)
 $isAdmin = FALSE;
-if(isset($_SESSION['bzid'])) {
+if(array_key_exists('bzid', $_SESSION)) {
 	$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'config');
 	if($queryResult && $queryResult->num_rows == 0) {
 		$isAdmin = TRUE;
@@ -198,7 +198,7 @@ if(isset($_SESSION['bzid'])) {
 $error = FALSE;
 
 // main action switch
-switch(isset($_GET['action']) ? $_GET['action'] : '') {
+switch(array_key_exists('action', $_GET) ? $_GET['action'] : '') {
 case 'login':
 	if($databaseUp) {
 		$validationURL = 'http://my.bzflag.org/db/?action=CHECKTOKENS&checktokens='.urlencode($_GET['callsign']).'%3D'.$_GET['token'];
@@ -268,7 +268,7 @@ case 'loginnotpermitted':
 	break;
 
 case 'abandonteam':
-	if($configUp && isset($_SESSION['bzid']) && ! $eventClosed) {
+	if($configUp && array_key_exists('bzid', $_SESSION) && ! $eventClosed) {
 		$queryResult = $mysqli->query('SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
 		if($queryResult && $queryResult->num_rows > 0) {
 			$resultArray = $queryResult->fetch_assoc();
@@ -290,7 +290,7 @@ case 'abandonteam':
 	break;
 
 case 'createteam':
-	if($configUp && isset($_SESSION['bzid']) && ! $eventClosed) {
+	if($configUp && array_key_exists('bzid', $_SESSION) && ! $eventClosed) {
 		if(isset($_POST['bzids']) && is_array($_POST['bzids'])) {
 			$bzids = Array($_SESSION['bzid']); foreach($_POST['bzids'] as $bzid) if(is_numeric($bzid)) array_push($bzids, $bzid);
 			$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'memberships WHERE (bzid='.implode(' OR bzid=', $bzids).') AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
@@ -318,7 +318,7 @@ case 'createteam':
 	break;
 
 case 'addmembers':
-	if($configUp && isset($_SESSION['bzid']) && ! $eventClosed) {
+	if($configUp && array_key_exists('bzid', $_SESSION) && ! $eventClosed) {
 		if(isset($_POST['bzids']) && is_array($_POST['bzids'])) {
 			$queryResult = $mysqli->query('SELECT team FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND rating IS NOT NULL AND team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.')');
 			if($queryResult && $queryResult->num_rows > 0) {
@@ -350,7 +350,7 @@ case 'addmembers':
 	break;
 
 case 'acceptinvitation':
-	if($configUp && isset($_SESSION['bzid']) && ! $eventClosed) {
+	if($configUp && array_key_exists('bzid', $_SESSION) && ! $eventClosed) {
 		if(isset($_POST['team']) && is_numeric($_POST['team'])) {
 			$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'memberships WHERE bzid='.$_SESSION['bzid'].' AND team='.$_POST['team'].' AND rating IS NULL AND team IN (SELECT id FROM teams WHERE event='.$currentEvent.')');
 			if($queryResult && $queryResult->num_rows > 0) {
@@ -554,13 +554,13 @@ case 'deleteresult':
 ////////////////////////////// Post-Action Logic //////////////////////////////
 
 // unauthenticated and unconfigured redirect
-if($databaseUp && ! isset($_SESSION['bzid']) && (! $configUp)) {
+if($databaseUp && ! array_key_exists('bzid', $_SESSION) && (! $configUp)) {
 	header('Location: '.$loginURL);
 	exit;
 }
 
 // ban check
-if($configUp && isset($_SESSION['bzid'])) {
+if($configUp && array_key_exists('bzid', $_SESSION)) {
 	$queryResult = $mysqli->query('SELECT banned FROM '.$mySQLPrefix.'users WHERE bzid='.$_SESSION['bzid']);
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_assoc();
@@ -573,7 +573,7 @@ if($configUp && isset($_SESSION['bzid'])) {
 }
 
 // touch the last event record for the current logged-in user
-if(isset($_SESSION['bzid']) && $currentEvent)
+if(array_key_exists('bzid', $_SESSION) && $currentEvent)
 	$mysqli->query('UPDATE '.$mySQLPrefix.'users SET lastEvent='.$currentEvent.' WHERE bzid='.$_SESSION['bzid']);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -595,21 +595,21 @@ echo "\t\t\t<img src=\"bzicon.png\" alt=\"icon\">\n";
 echo "\t\t\tBZFLAG FUNMATCH CHALLENGE\n";
 echo "\t\t</div>\n";
 echo "\t\t<ul class=\"headerButtons\">\n";
-echo "\t\t\t<li><a ".((! isset($_GET['action']) && ! isset($_GET['event']) || $_GET['action'] == 'promptenterresult' || $_GET['action'] == 'enterresult' || $_GET['action'] == 'deleteresult') ? "class=\"current\" " : "")."href=\".\">HOME</a></li>";
-echo "<li><a ".($_GET['action'] == 'info' ? "class=\"current\" " : "")."href=\"?action=info\">INFORMATION</a></li>";
-if($_SESSION['bzid'])
-	echo "<li><a ".($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers' ? "class=\"current\" " : "")."href=\"?action=registration\">REGISTRATION</a></li>";
+echo "\t\t\t<li><a ".(((! array_key_exists('action', $_GET) && ! array_key_exists('event', $_GET)) || array_key_exists('action', $_GET) && ($_GET['action'] == 'promptenterresult' || $_GET['action'] == 'enterresult' || $_GET['action'] == 'deleteresult')) ? "class=\"current\" " : "")."href=\".\">HOME</a></li>";
+echo "<li><a ".(array_key_exists('action', $_GET) && $_GET['action'] == 'info' ? "class=\"current\" " : "")."href=\"?action=info\">INFORMATION</a></li>";
+if(array_key_exists('bzid', $_SESSION))
+	echo "<li><a ".(array_key_exists('action', $_GET) && ($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers') ? "class=\"current\" " : "")."href=\"?action=registration\">REGISTRATION</a></li>";
 if($currentEvent) {
 	$queryResult = $mysqli->query('SELECT COUNT(id) FROM '.$mySQLPrefix.'events WHERE isClosed=TRUE AND id<>'.$currentEvent);
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_row();
 		if($resultArray[0] > 0)
-			echo "<li><a ".($_GET['action'] == 'history' || isset($_GET['event']) ? "class=\"current\" " : "")."href=\"?action=history\">PAST EVENTS</a></li>";
+			echo "<li><a ".((array_key_exists('action', $_GET) && $_GET['action'] == 'history') || array_key_exists('event', $_GET) ? "class=\"current\" " : "")."href=\"?action=history\">PAST EVENTS</a></li>";
 	}
 }
-if($isAdmin) echo "<li><a ".($_GET['action'] == 'admin' || $_GET['action'] == 'promptcreateevent' || $_GET['action'] == 'prompteditevent' || $_GET['action'] == 'promptdeleteevent' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups' ? "class=\"current\" " : "")."href=\"?action=admin\">ADMIN</a></li>";
+if($isAdmin) echo "<li><a ".(array_key_exists('action', $_GET) && ($_GET['action'] == 'admin' || $_GET['action'] == 'promptcreateevent' || $_GET['action'] == 'prompteditevent' || $_GET['action'] == 'promptdeleteevent' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups') ? "class=\"current\" " : "")."href=\"?action=admin\">ADMIN</a></li>";
 echo "<li><a href=\"http://forums.bzflag.org/ucp.php?i=pm&amp;mode=compose&amp;u=9972\">CONTACT</a></li>";
-if($_SESSION['bzid'])
+if(array_key_exists('bzid', $_SESSION))
 	echo "<li><a href=\"?action=logout\">LOG OUT</a></li>";
 else
 	echo "<li><a href=\"".$loginURL."\">LOG IN</a></li>";
@@ -624,7 +624,7 @@ if($error)
 	echo "\t\t\t<p class=\"error\"><b>ERROR:</b> ".$error."</p>\n";
 
 // main action logic
-if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers')) {
+if(array_key_exists('bzid', $_SESSION) && $configUp && array_key_exists('action', $_GET) && ($_GET['action'] == 'registration' || $_GET['action'] == 'abandonteam' || $_GET['action'] == 'createteam' || $_GET['action'] == 'acceptinvitation' || $_GET['action'] == 'addmembers')) {
 	if(! $currentEvent) {
 		echo "\t\t\t<h1>User Information</h1>\n";
 		echo "\t\t\t<table>\n";
@@ -723,9 +723,9 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 			echo "\t\t\t</form>\n";
 		}
 	}
-} else if($configUp && isset($_GET['action']) && $_GET['action'] == 'info') {
+} else if($configUp && array_key_exists('action', $_GET) && $_GET['action'] == 'info') {
 	echo "\t\t\t<h1>Tournament Format</h1>\n";
-	echo "\t\t\t<p>This event is a funmatch tournament for BZFlag league players. The competition format is a single-elimination table. To participate, you will need to group up with some other players (depending on the team sizes for the event) and register on this site as a team. Each of you must log in to this site to generate a player record. One of your team members must then create the team using the ".(isset($_SESSION['bzid']) ? "<a href=\".?action=registration\">registration</a>" : "registration")." page. The other team member(s) must then navigate to the same page and accept the team invitation. After the minimum team member count has been met, your team will be listed on the home page. Teams will be seeded (ranked) relative to other teams by the average of their <a href=\"http://leaguesunited.org\">Leagues United</a> individual player ratings. After the close of registration time, all teams are frozen, and all ratings are updated one last time to create the final seeding. A single-elimination bracket is then created, and teams are assigned to spots based on their seeding. Depending on how many teams register, some teams may have a bye into the second round. Teams will then compete against each assigned opponent until only one team remains, which will be declared the winner.</p>\n";
+	echo "\t\t\t<p>This event is a funmatch tournament for BZFlag league players. The competition format is a single-elimination table. To participate, you will need to group up with some other players (depending on the team sizes for the event) and register on this site as a team. Each of you must log in to this site to generate a player record. One of your team members must then create the team using the ".(array_key_exists('bzid', $_SESSION) ? "<a href=\".?action=registration\">registration</a>" : "registration")." page. The other team member(s) must then navigate to the same page and accept the team invitation. After the minimum team member count has been met, your team will be listed on the home page. Teams will be seeded (ranked) relative to other teams by the average of their <a href=\"http://leaguesunited.org\">Leagues United</a> individual player ratings. After the close of registration time, all teams are frozen, and all ratings are updated one last time to create the final seeding. A single-elimination bracket is then created, and teams are assigned to spots based on their seeding. Depending on how many teams register, some teams may have a bye into the second round. Teams will then compete against each assigned opponent until only one team remains, which will be declared the winner.</p>\n";
 	echo "\t\t\t<h1>Rules</h1>\n";
 	echo "\t\t\t<ul>\n";
 	echo "\t\t\t\t<li>All standard league rules are in effect.</li>\n";
@@ -738,7 +738,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t<li>Any player who refuses to play an assigned opponent may cause his team to be disqualified and may be banned from future events. A player who causes serious disruption to the competition or who commits a serious violation of league or tournament rules during the competition may also be banned from future events.</li>\n";
 	echo "\t\t\t\t<li>Any issues that arise which are not covered here will be adjudicated by any league administrator(s) present.</li>\n";
 	echo "\t\t\t</ul>\n";
-} else if($currentEvent && isset($_GET['action']) && $_GET['action'] == 'history') {
+} else if($currentEvent && array_key_exists('action', $_GET) && $_GET['action'] == 'history') {
 	echo "\t\t\t<p>\n";
 	$queryResult = $mysqli->query('SELECT id,description FROM '.$mySQLPrefix.'events WHERE isClosed=TRUE AND id<>'.$currentEvent.' ORDER BY id DESC');
 	if($queryResult && $queryResult->num_rows > 0) {
@@ -747,7 +747,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 			echo "\t\t\t\t<a href=\"?event=".$resultArray[$i]['id']."\">".$resultArray[$i]['description']."</a>".($i < count($resultArray) - 1 ? "<br>" : "")."\n";
 	}
 	echo "\t\t\t</p>\n";
-} else if(isset($_SESSION['bzid']) && $currentEvent && isset($_GET['action']) && $_GET['action'] == 'promptabandonteam') {
+} else if(array_key_exists('bzid', $_SESSION) && $currentEvent && array_key_exists('action', $_GET) && $_GET['action'] == 'promptabandonteam') {
 	echo "\t\t\t<h1>Abandon Team</h1>\n";
 	echo "\t\t\t<p>Please confirm whether you wish to abandon your current team:</p>\n";
 	echo "\t\t\t<table>\n";
@@ -756,7 +756,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t\t<td><form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"abandonteam\"><input type=\"submit\" value=\"Confirm\" class=\"submitButton\"></p></form></td>\n";
 	echo "\t\t\t\t</tr>\n";
 	echo "\t\t\t</table>\n";
-} else if($isAdmin && $configUp && isset($_GET['action']) && ($_GET['action'] == 'admin' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups')) {
+} else if($isAdmin && $configUp && array_key_exists('action', $_GET) && ($_GET['action'] == 'admin' || $_GET['action'] == 'closeevent' || $_GET['action'] == 'openevent' || $_GET['action'] == 'deleteevent' || $_GET['action'] == 'editevent' || $_GET['action'] == 'updateseeding' || $_GET['action'] == 'ban' || $_GET['action'] == 'unban' || $_GET['action'] == 'admingroups')) {
 	$queryResult = $mysqli->query('SELECT *,(SELECT COUNT(*) FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.') AS numTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.';');
 	if($queryResult && $queryResult->num_rows > 0) {
 		$resultArray = $queryResult->fetch_assoc();
@@ -868,7 +868,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t\t<p class=\"tight\"><input type=\"submit\" value=\"Update\" class=\"submitButton\"></p>\n";
 	echo "\t\t\t\t</fieldset>\n";
 	echo "\t\t\t</form>\n";
-} else if($isAdmin && $configUp && isset($_GET['action']) && ($_GET['action'] == 'promptcreateevent' || $_GET['action'] == 'prompteditevent')) {
+} else if($isAdmin && $configUp && array_key_exists('action', $_GET) && ($_GET['action'] == 'promptcreateevent' || $_GET['action'] == 'prompteditevent')) {
 	$registrationsExist = FALSE;
 	if($_GET['action'] == 'prompteditevent') {
 		$queryResult = $mysqli->query('SELECT * FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent);
@@ -904,7 +904,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t\t<tr><td class=\"rightAlign\"><input type=\"submit\" value=\"Submit\" class=\"submitButton\"></td><td>&nbsp;</td></tr>\n";
 	echo "\t\t\t\t</table>\n";
 	echo "\t\t\t</form>\n";
-} else if ($isAdmin && $configUp && isset($_GET['action']) && $_GET['action'] == 'promptdeleteevent') {
+} else if ($isAdmin && $configUp && array_key_exists('action', $_GET) && $_GET['action'] == 'promptdeleteevent') {
 	echo "\t\t\t<h1>Delete Event</h1>\n";
 	echo "\t\t\t<p>Please confirm whether you wish to delete the current event:</p>\n";
 	echo "\t\t\t<table>\n";
@@ -913,7 +913,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t\t\t<td><form action=\".\" method=\"GET\"><p class=\"tight\"><input type=\"hidden\" name=\"action\" value=\"deleteevent\"><input type=\"submit\" value=\"Confirm\" class=\"submitButton\"></p></form></td>\n";
 	echo "\t\t\t\t</tr>\n";
 	echo "\t\t\t</table>\n";
-} else if ($isAdmin && $currentEvent && isset($_GET['action']) && $_GET['action'] == 'promptenterresult') {
+} else if ($isAdmin && $currentEvent && array_key_exists('action', $_GET) && $_GET['action'] == 'promptenterresult') {
 	echo "\t\t\t<h1>".(isset($_POST['team1Score']) && isset($_POST['team2Score']) ? 'Edit' : 'Enter')." Match Result</h1>\n";
 	echo "\t\t\t<form action=\".?action=enterresult\" method=\"POST\">\n";
 	echo "\t\t\t\t<p class=\"tight\"><input type=\"hidden\" name=\"match\" value=\"".$_POST['match']."\"></p>\n";
@@ -935,7 +935,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 	echo "\t\t\t<form action=\".\" method=\"GET\"><p><input type=\"submit\" value=\"Cancel\" class=\"submitButton\"></p></form>\n";
 } else if($configUp) {
 	if(! isset($_GET['event']))
-		echo "\t\t\t<p>The BZFlag FunMatch Challenge is a single-elimination multi-player funmatch tournament for BZFlag league players. This event consists of a series of twenty-minute matches (with a thirty-minute final match) which take place on a single day over several hours (depending on the turnout). Teams may consist of any combination of league members. For further information, please refer to the <a href=\"?action=info\">information</a> page. To register for the tournament, or to modify or cancel an existing registration, please ".(isset($_SESSION['bzid']) ? "visit the <a href=\"?action=registration\">registration</a>" : "<a href=\"".$loginURL."\">log in</a> and visit the registration")." page.</p>\n";
+		echo "\t\t\t<p>The BZFlag FunMatch Challenge is a single-elimination multi-player funmatch tournament for BZFlag league players. This event consists of a series of twenty-minute matches (with a thirty-minute final match) which take place on a single day over several hours (depending on the turnout). Teams may consist of any combination of league members. For further information, please refer to the <a href=\"?action=info\">information</a> page. To register for the tournament, or to modify or cancel an existing registration, please ".(array_key_exists('bzid', $_SESSION) ? "visit the <a href=\"?action=registration\">registration</a>" : "<a href=\"".$loginURL."\">log in</a> and visit the registration")." page.</p>\n";
 	if($currentEvent) {
 		if(isset($_GET['event']) && is_numeric($_GET['event']) && $currentEvent != $_GET['event']) {
 			$queryResult = $mysqli->query('SELECT description FROM '.$mySQLPrefix.'events WHERE id='.$_GET['event'].' AND isClosed=TRUE');
@@ -1209,7 +1209,7 @@ if(isset($_SESSION['bzid']) && $configUp && isset($_GET['action']) && ($_GET['ac
 										echo "&nbsp;</td>\n";
 									$pregMatches = Array();
 									if(preg_match('/^(\d+)\s?(-)?$/', $gridSpace['content'], $pregMatches)) {
-										echo "\t\t\t\t\t<td class=\"".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? 'base ' : '').(count($pregMatches) > 2 && $columnIndex < count($columns) - 1 ? "strikethrough " : "")."leftAlign\">".preg_replace("/\s/", "&nbsp;", $teams[$pregMatches[1]])."</td>\n";
+										echo "\t\t\t\t\t<td class=\"".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? 'base ' : '').(count($pregMatches) > 2 && $columnIndex < count($columns) - 1 ? "strikethrough " : "")."leftAlign\">".($pregMatches[1] > 0 ? preg_replace("/\s/", "&nbsp;", $teams[$pregMatches[1]]) : '')."</td>\n";
 										echo "\t\t\t\t\t<td".($gridSpace['cellType'] == 'base' || $gridSpace['cellType'] == 'branch' ? " class=\"base\"" : '').">".($columnIndex < count($columns) - 1 ? "<b>".$gridSpace['score']."</b>" : "&nbsp;")."</td>\n";
 									} else {
 										if($gridSpace['content'] == '') {
