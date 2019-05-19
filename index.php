@@ -1106,7 +1106,7 @@ if(array_key_exists('bzid', $_SESSION) && $configUp && array_key_exists('action'
 						if($queryResult && $queryResult->num_rows > 0) {
 							$resultArray = $queryResult->fetch_row();
 							echo "\t\t\t<table>\n";
-							echo "\t\t\t\t<tr><th>Place</th><th>Team Members</th></tr>\n";
+							echo "\t\t\t\t<tr><th>Place</th><th>Team&nbsp;Members</th></tr>\n";
 							echo "\t\t\t\t<tr><td>1</td><td>".$resultArray[0]."</td></tr>\n";
 							echo "\t\t\t</table>\n";
 						}
@@ -1126,7 +1126,7 @@ if(array_key_exists('bzid', $_SESSION) && $configUp && array_key_exists('action'
 						for($round = 0; $round <= $numRounds; ++$round)
 							sort($results[$round]);
 						echo "\t\t\t<table>\n";
-						echo "\t\t\t\t<tr><th>Place</th><th>Team Members</th></tr>\n";
+						echo "\t\t\t\t<tr><th>Place</th><th>Team&nbsp;Members</th></tr>\n";
 						$altRow = FALSE;
 						$placeCount = 1;
 						for($round = 0; $round <= $numRounds; ++$round) {
@@ -1256,7 +1256,7 @@ if(array_key_exists('bzid', $_SESSION) && $configUp && array_key_exists('action'
 			if(! isset($_GET['event']))
 				echo "\t\t\t<p>This table shows the initial seeding (ranking) of all teams registered for this event. This seeding is used to assign teams to slots in the elimination table. Team ratings are calculated by taking the average individual player rating of all team members in <a href=\"http://leaguesunited.org\">Leagues United</a>, and are subject to change until registration is closed. Any teams listed in gray text without a seeding are on the waiting list (listed in order of priority) due to the number of teams exceeding the event capacity.</p>\n";
 			echo "\t\t\t<table>\n";
-			echo "\t\t\t\t<tr><th>Seed</th><th>Average Rating</th><th>Team Members & Individual Ratings</th></tr>\n";
+			echo "\t\t\t\t<tr><th>Seed</th><th>Average&nbsp;Rating</th><th>Team&nbsp;Members&nbsp;&amp;&nbsp;Individual&nbsp;Ratings</th></tr>\n";
 			$queryResult = $mysqli->query('SELECT team AS teamID,(SELECT sufficiencyTime FROM '.$mySQLPrefix.'teams WHERE id=teamID) as sufficiencyTime,FLOOR(SUM(rating) / COUNT(rating)) AS average, GROUP_CONCAT(CONCAT_WS(" ",(SELECT callsign FROM '.$mySQLPrefix.'users WHERE bzid='.$mySQLPrefix.'memberships.bzid),CONCAT("(",rating,")")) ORDER BY rating IS NULL SEPARATOR ",") AS members,((SELECT COUNT(*) FROM '.$mySQLPrefix.'memberships WHERE rating IS NOT NULL AND team=teamID) >= (SELECT minTeamSize FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.')) AS enough,(SELECT maxTeams FROM '.$mySQLPrefix.'events WHERE id='.$currentEvent.') AS maxTeams FROM '.$mySQLPrefix.'memberships WHERE team IN (SELECT id FROM '.$mySQLPrefix.'teams WHERE event='.$currentEvent.') '.($isAdmin ? '' : 'AND rating IS NOT NULL ').'GROUP BY team ORDER BY average DESC,sufficiencyTime');
 			if($queryResult && $queryResult->num_rows > 0) {
 				$resultArray = $queryResult->fetch_all(MYSQLI_ASSOC);
